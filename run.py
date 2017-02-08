@@ -1,3 +1,4 @@
+import sys
 from flask import Flask
 from flask import jsonify
 from flask_cors import CORS, cross_origin
@@ -12,6 +13,9 @@ def home():
 @app.route('/<mypage>')
 def userpage(mypage):
     return app.send_static_file('Front-end/EnterpriseUser/index.html')
+@app.route('/redactor')
+def redactor():
+    return app.send_static_file('Front-end/EnterpriseAuthor/index.html')
 @app.route('/api/test', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def test():
