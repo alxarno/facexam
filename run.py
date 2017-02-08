@@ -1,6 +1,7 @@
 import sys
 from flask import Flask
 from flask import jsonify
+from flask import abort, redirect, url_for
 from flask_cors import CORS, cross_origin
 import time
 
@@ -10,12 +11,29 @@ cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.route('/')
 def home():
     return app.send_static_file('Front-end/EnterpriseUser/index.html')
-@app.route('/<mypage>')
-def userpage(mypage):
+
+
+
+@app.route('/mypage')
+def userpage():
     return app.send_static_file('Front-end/EnterpriseUser/index.html')
+
+@app.route('/<subject>')
+def subjectpage(subject):
+    return app.send_static_file('Front-end/EnterpriseUser/index.html')
+
+@app.route('/<subject>/lection/<int:lessonid>')
+@app.route('/<subject>/lection/')
+@app.route('/<subject>/lection')
+def lectionsPage(subject, lessonid=None):
+    return redirect(url_for('subjectpage', subject=subject))
+
+
 @app.route('/redactor')
 def redactor():
-    return app.send_static_file('Front-end/EnterpriseAuthor/index.html')
+    return redirect(url_for('static', filename='Front-end/EnterpriseUser/index.html'))
+
+
 @app.route('/api/test', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def test():
