@@ -2,3 +2,4 @@
 
 # dependencies
 .idea
+__pycache__
