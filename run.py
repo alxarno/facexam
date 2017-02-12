@@ -1,18 +1,33 @@
 import sys
-from flask import Flask
-from flask import jsonify
-from flask import abort, redirect, url_for, request
+from Engine import models
+from flask import Flask, abort, redirect, url_for, request, jsonify
 from flask_cors import CORS, cross_origin
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate, MigrateCommand
+
 import time
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+app.config.from_object('config')
+db = SQLAlchemy(app)
+db.create_all()
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+migrate = Migrate(app, db)
+
+admin = models.User('admin', 'admin@example.com')
+guest = models.User('guest', 'guest@example.com')
+db.session.add(admin)
+db.session.add(guest)
+db.session.commit()
 
 @app.route('/')
 def home():
     return  redirect(url_for('login'))
 
-
+@app.route('/api/users')
+def user():
+    users = models.User.query.all()
+    return jsonify(users)
 
 @app.route('/mypage')
 def userpage():
@@ -40,7 +55,11 @@ def login():
 def enter():
     loginUser = request.args.get('login', 0, type=str)
     passwordUser = request.args.get('pass', 0, type=str)
-    return jsonify(result=loginUser+passwordUser)
+    if(loginUser=='jesus' and passwordUser == '1111'):
+        return jsonify(result='/mypage')
+    else:
+        return jsonify(result='Error')
+
 
 
 @app.route('/redactor')

@@ -161,3 +161,9 @@ h1 {
 .cta{
   cursor: pointer
 }
+.ErrorMessageEnter{
+  color: red;
+  opacity: 0;
+  margin: 10px;
+    font-weight: 600;
+}

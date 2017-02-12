@@ -20,7 +20,16 @@ $('#enter').click(function(){
             login: $('#loginEnter').val(),
             pass: $('#passEnter').val()
           }, function(data) {
-              console.log(data.result)
+             if(data.result == 'Error'){
+             	  $(".ErrorMessageEnter").animate({
+             	  	opacity: 0.8
+             	  }, 'slow')
+             }else{
+             	$(".ErrorMessageEnter").animate({
+             	  	opacity: 0
+             	  }, 'slow')
+             	window.location.replace('http://'+window.location.hostname+':'+window.location.port+data.result)
+             }
         	}
  
 		)
