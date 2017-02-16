@@ -37,12 +37,22 @@ $('#enter').click(function(){
   )
 
 $('#registr').click(function(){
-      $.getJSON('/api/registr', {
-            login: $('#regLogin').val(),
+      $.getJSON('/api/register', {
+            name: $('#regName').val(),
             pass: $('#regPass').val(),
             email: $('#regEmail').val()
           }, function(data) {
               console.log(data.result)
+              if(data.result == 'Using email'){
+                $(".ErrorMessageRegistr").animate({
+                  opacity: 0.8
+                }, 'slow')
+             }else{
+              $(".ErrorMessageRegistr").animate({
+                  opacity: 0
+                }, 'slow')
+              window.location.replace('http://'+window.location.hostname+':'+window.location.port+data.result)
+             }
         	}
  
 		)

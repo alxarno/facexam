@@ -29,13 +29,28 @@ def login():
 
 @app.route('/api/enter')
 def enter():
-    loginUser = request.args.get('login', 0, type=str)
+    loginUser = request.args.get('email', 0, type=str)
     passwordUser = request.args.get('pass', 0, type=str)
     if(loginUser=='jesus' and passwordUser == '1111'):
         return jsonify(result='/mypage')
     else:
         return jsonify(result='Error')
 #
+
+
+@app.route('/api/register')
+def register():
+    nameUser = request.args.get('name', 0, type=str)
+    emailUser = request.args.get('email', 0, type=str)
+    passwordUser = request.args.get('pass', 0, type=str)
+    wrongEmail = models.User.query.filter_by(email=emailUser).first()
+    if(wrongEmail):
+        return jsonify(result='Using email')
+    else:
+        user = models.User(name=nameUser, email=emailUser, password = passwordUser)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify(result='/mypage')
 #
 #
 @app.route('/redactor')
@@ -44,20 +59,26 @@ def redactor():
 
 @app.route('/api/createperson')
 def createperson():
-    users = models.User(nickname='susan', email='susan@email.com')
+    users = models.User(name='susan2', email='susan2@email.com')
     db.session.add(users)
     db.session.commit()
     return jsonify(result='good')
 
+@app.route('/api/deleteperson/<int:idperson>')
+def deleteperson(idperson):
+    user = models.User.query.get(idperson)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify(result='good')
 
 @app.route('/api/getpersons')
 def getperson():
     users = models.User.query.all()
     finishArray = []
     for u in users:
-        nameU = u.nickname
-        idU = u.id
-        time = {idU: nameU}
+        nameU = u.name
+        emailU = u.email
+        time = {nameU: emailU}
         finishArray.append(time)
     return jsonify(finishArray)
 

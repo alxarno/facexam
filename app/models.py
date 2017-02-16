@@ -5,8 +5,9 @@ ROLE_ADMIN = 1
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    nickname = db.Column(db.String(64), index = True, unique = True)
     email = db.Column(db.String(120), index = True, unique = True)
+    name = db.Column(db.String(64))
+    password = db.Column(db.String(64))
     role = db.Column(db.SmallInteger, default = ROLE_USER)
     test = db.relationship('Test', backref='author', lazy='dynamic')
 

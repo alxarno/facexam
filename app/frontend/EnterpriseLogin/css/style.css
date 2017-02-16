@@ -162,8 +162,15 @@ h1 {
   cursor: pointer
 }
 .ErrorMessageEnter{
-  color: red;
+  color: #33b5e5;
   opacity: 0;
   margin: 10px;
-    font-weight: 600;
+    font-weight: 500;
+}
+.ErrorMessageRegistr{
+  color: #33b5e5;
+  opacity: 0;
+  margin: 10px;
+  text-align: center;
+  font-weight: 500;
 }
