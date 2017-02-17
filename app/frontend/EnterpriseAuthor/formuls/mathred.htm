@@ -1,0 +1,367 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Редактор математических формул</title>
+
+<style>
+#container { margin-top:5px !important;margin-left:5px !important;margin-right:5px !important ;margin-bottom:5px !important;}
+
+
+#MyTools {
+background: #F0F0F0;
+height: 33px;
+width: 100% !important;
+
+border: 1px solid #999999 !important;
+}
+
+.CodeMirror {
+height: 180px !important;
+width: 100% !important;
+margin-top: 0px;
+border-style: solid;
+border-width: 1px;
+border-top-width: 0px;
+border-color: #999999 #999999 #999999 #999999;
+line-height: 1.6em;
+font-size: 16px;
+font-family: verdana,arial,helvetica,sans-serif;
+color: black;
+letter-spacing: 0.12em;
+}
+
+
+.CodeMirror-scroll {
+overflow: auto;
+width: 99% !important;
+height: 180px;
+position: relative;
+}
+
+
+#MathOutput {width: 100% !important;}
+
+#TextAreaLinkCode {
+width:100% !important;
+height: 72px !important;
+font-family: verdana,arial,helvetica,sans-serif;
+font-size: 12px;
+margin-top: 2px;
+padding-top: 8px;
+border: 2px solid #999999 !important;
+}
+
+
+.ui-widget {
+font-family: Verdana,Trebuchet MS,Tahoma,Arial,sans-serif;
+font-size: 11px !important;
+}
+
+
+.ui-tabs .ui-tabs-nav {
+margin: 0;
+padding-left: 14px !important;
+padding-right: 0px !important;
+padding-bottom: 0px !important;
+padding-top: 2px !important;
+
+
+
+
+}
+
+
+.ui-widget-header {
+border-left: 0px solid #cccccc !important;
+border-right: 0px solid #cccccc !important;
+border-top: 0px solid #cccccc !important;
+
+
+background: #F0F0F0;
+color: #ffffff;
+}
+
+.ui-tabs .ui-tabs-panel {
+display: block;
+border-width: 0;
+padding-left: 0 !important;
+padding-right: 0 !important;
+padding-bottom: 0 !important;
+
+background: none;
+font-size: 12px;
+min-height: 440px !important;
+}
+
+
+.ui-tabs {
+position: relative;
+padding-top: 0 !important;
+padding-left: 0 !important;
+padding-right: 0 !important;
+zoom: 1;
+}
+
+.ui-tabs .ui-tabs-nav li a {
+float: left;
+width: 29px !important;
+padding-top: 6px;
+padding-bottom: 6px;
+text-decoration: none;
+text-align: center;
+}
+
+.ui-corner-all, .ui-corner-bottom, .ui-corner-right, .ui-corner-br {
+-moz-border-radius-bottomright: 4px;
+-webkit-border-bottom-right-radius: 4px;
+-khtml-border-bottom-right-radius: 4px;
+border-bottom-right-radius: 0px !important;
+border-bottom-left-radius: 0px !important;
+border-top-right-radius: 0px !important;
+border-top-left-radius: 0px !important;
+
+}
+
+
+
+
+div#MyMath3528.ForAllNormal ul li a {
+
+margin: 1px !important;
+}
+
+
+</style> 
+
+
+
+<script type="text/javascript">
+//<![CDATA[
+try{if (!window.CloudFlare) {var CloudFlare=[{verbose:0,p:0,byc:0,owlid:"cf",bag2:1,mirage2:0,oracle:0,paths:{cloudflare:"/cdn-cgi/nexp/dok9v=02fcfa4f56/"},atok:"c99e5d39a9b40dec962ef46000e388de",petok:"313f188f0c5822f56a120d3e9e5a903baa073f47-1399018247-1800",zone:"hostmath.com",rocket:"0",apps:{}}];CloudFlare.push({"apps":{"ape":"6d5a357dc57e2571ed11362b07f5eb9a"}});!function(a,b){a=document.createElement("script"),b=document.getElementsByTagName("script")[0],a.async=!0,a.src="//ajax.cloudflare.com/cdn-cgi/nexp/dok9v=b064e16429/cloudflare.min.js",b.parentNode.insertBefore(a,b)}()}}catch(e){};
+//]]>
+</script>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<script type="text/x-mathjax-config"> 
+ MathJax.Hub.Config({ 
+ extensions: ["tex2jax.js","asciimath2jax.js","toMathML.js"], 
+ "HTML-CSS": {imageFont: null }, 
+ showMathMenu: false, 
+ showMathMenuMSIE: false,
+ TeX: { extensions: ["AMSmath.js","AMSsymbols.js","noUndefined.js"]},
+ jax: ["input/TeX","input/AsciiMath","output/HTML-CSS"]
+ }); 
+ </script>
+
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+
+
+<link href="frontend/EnterpriseAuthor/formuls/css/codemirror.css" rel="stylesheet" type="text/css"/>
+
+<script src="frontend/EnterpriseAuthor/formuls/js/codemirror.js" type="text/javascript"></script>
+
+<script src="frontend/EnterpriseAuthor/formuls/js/stex.js" type="text/javascript"></script>
+
+<script src="frontend/EnterpriseAuthor/formuls/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+
+<script src="frontend/EnterpriseAuthor/formuls/js/SetUI.js" type="text/javascript"></script>
+
+<link href="frontend/EnterpriseAuthor/formuls/css/SetUI.css" rel="stylesheet" type="text/css"/>
+
+<script type="text/javascript">
+ $(function () {
+ var aa = $("#HiddenField1").val();
+ $("#TextAreaInput").text(aa);
+
+ $.initSetGlobal("TextAreaInput", "MathOutput", "TextAreaLinkCode", "divMathML");
+ $.iniEmbeded("ShowHideEmbeded", "divEmbed", "selectEquation", "ShowHideURL", "ShowHideMathML");
+ $("#MyTools").initTool();
+ $("#MyMath20").initMath();
+ $("#MyMath3528").initMath3528();
+ $("#MyMath3545").initMath3545();
+ $("#MyMathHeigh45").initMathHeigh45();
+ $("#MyFun4020").initFun();
+ $("#MyGreek20").initGreek();
+ $("#MyLogic20").initLogic();
+ $("#MyArrow20").initArrow();
+ $("#MySymbol20").initSymbol();
+ $("#MyColor4020").initColor();
+ $("#MyFontStyleHeigh20").initFontStyle();
+ $("#MyFontSizeHeigh20").initFontSize();
+
+ 
+ var n = $("#HiddenFieldIsAsc").val();
+ if (n != "") {
+ useASCII = false;
+ $("#MyTools ul li a.Asc").click();
+ }
+
+ });
+ </script>
+
+<script src="frontend/EnterpriseAuthor/formuls/js/jquery-ui-1.8.17.custom.min.js" type="text/javascript"></script>
+
+<link href="frontend/EnterpriseAuthor/formuls/css/jquery-ui-1.8.17.custom.css" rel="stylesheet" type="text/css"/>
+
+<link href="frontend/EnterpriseAuthor/formuls/css/MainPage.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript">
+ $(function () {
+ $('#tabs').tabs({
+ // event: "mouseover"
+ });
+ });
+ </script>
+<script type="text/javascript">
+ $(function () {
+ $('#HyHome').removeClass().addClass("MainMenuSelected");
+ });
+ </script>
+
+
+</head>
+
+
+
+
+<body>
+
+
+
+
+
+
+
+
+
+
+<form method="post" action="" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJMTY2MTYzNTE0ZGSZ8SJ71t3CJhlSsB2C4/ocnvnG47WYz3ENYXWadZkdpg=="/>
+</div>
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAOGYbLZajKE/H95elBRFDNzCLGk/TWeF3UL/r/EUZkfQXSaRWlX7GRec/+4JTyOUk6kwwAJc3uQ2kX+nDVmAGNXs7LRnDAGp7K9h2X0GFOmZg=="/>
+</div>
+
+<div id="container">
+
+
+<div id="content">
+<input type="hidden" name="ctl00$ContentPlaceHolder1$HiddenField1" id="HiddenField1" value="\frac{-b\pm\sqrt{b^2-4ac}}{2a}"/>
+<input type="hidden" name="ctl00$ContentPlaceHolder1$HiddenFieldIsAsc" id="HiddenFieldIsAsc"/>
+
+<table cellpadding="0" cellspacing="0" class="MainTable" border="0">
+<tr>
+<td style="width:226px !important;">
+
+<div id="tabs" style="min-width: 226px !important;">
+<ul>
+<li><a href="#tabs-Math">&Sigma;</a></li>
+<li title="Греческие буквы и функции"><a href="#tabs-Function">f(&alpha;)</a></li>
+<li title="Логика"><a href="#tabs-Logic">&ne;</a></li>
+<li title="Скобки и стрелки"><a href="#tabs-Arrow">(&uArr;)</a></li>
+<li title="Символы"><a href="#tabs-Symbol">&forall;</a></li>
+<li title="Формат"><a href="#tabs-Format">&hellip;</a></li>
+</ul>
+
+<div id="tabs-Math" >
+<div id="MyMath20" class="ForAllNormal"></div>
+<div id="MyMath3528"  class="ForAllNormal"></div>
+<div id="MyMath3545" class="ForAllNormal"></div>
+<div id="MyMathHeigh45" class="ForAllNormal"></div>
+
+</div>
+
+
+
+<div id="tabs-Function" >
+<div id="MyGreek20" class="ForAllNormal"></div>
+<div id="MyFun4020" class="ForAllNormal" ></div>
+</div>
+
+<div id="tabs-Logic" >
+<div id="MyLogic20" class="ForAllNormal"></div>
+</div>
+
+<div id="tabs-Arrow" >
+<div id="MyArrow20" class="ForAllNormal"></div>
+</div>
+
+<div id="tabs-Symbol" >
+<div id="MySymbol20" class="ForAllNormal"></div>
+</div>
+
+<div id="tabs-Format" >
+<div id="MyColor4020" class="ForAllNormal" ></div>
+<div id="MyFontStyleHeigh20" class="ForAllNormal"></div>
+<div id="MyFontSizeHeigh20" class="ForAllNormal" ></div>
+</div>
+
+
+</div>
+
+
+
+
+</td>
+<td width="5px;"><div style="min-width:5px !important;"></div></td>
+<td>
+
+<div id="MyTools" style="min-width: 420px !important;">
+<ul style="float:right;margin-right:10px;">
+
+
+</ul>
+</div>
+
+
+<textarea id="TextAreaInput"></textarea>
+
+<div id="MathOutput" style="height:165px !important;">
+<div id="ForLatext">\[{}\]</div>
+<div id="ForASC">\({}\)</div>
+</div>
+
+
+
+<textarea style="background-color:#FFFFCC !important;overflow: hidden !important;margin-left: 1px !important;" id="TextAreaLinkCode" readonly="readonly" ></textarea>
+
+
+
+
+
+
+
+
+
+
+</td>
+</tr>
+</table>
+</div>
+
+<script type="text/javascript">
+ function createIframe() {
+ var i = document.createElement("iframe");
+ i.src = "Vote.htm";
+ i.width = "350px;";
+ i.height = "30px;";
+ i.style.border = "solid 0px #000000";
+ i.frameBorder = "no";
+ i.scrolling = "no";
+ document.getElementById("vote").appendChild(i);
+ };
+ if (window.addEventListener) window.addEventListener("load", createIframe, false);
+ else if (window.attachEvent) window.attachEvent("onload", createIframe);
+ else window.onload = createIframe;
+ </script>
+</div>
+</form>
+
+</div>
+
+
+
+
+
+</html>

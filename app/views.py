@@ -9,6 +9,14 @@ def home():
 def userpage():
     return app.send_static_file('frontend/EnterpriseUser/index.html')
 
+@app.route('/redactor')
+def redactor():
+    return app.send_static_file('frontend/EnterpriseAuthor/index.html')
+
+@app.route('/formuls')
+def formuls():
+    return app.send_static_file('frontend/EnterpriseAuthor/formuls/mathred.htm')
+
 @app.route('/<subject>')
 def subjectpage(subject):
     return app.send_static_file('frontend/EnterpriseUser/index.html')
@@ -53,9 +61,6 @@ def register():
         return jsonify(result='/mypage')
 #
 #
-@app.route('/redactor')
-def redactor():
-    return redirect(url_for('static', filename='frontend/EnterpriseUser/index.html'))
 
 @app.route('/api/createperson')
 def createperson():
