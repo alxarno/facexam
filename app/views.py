@@ -1,5 +1,6 @@
 from app import app, db, models
 from flask import redirect, url_for, request, jsonify
+import json
 
 @app.route('/')
 def home():
@@ -35,11 +36,14 @@ def lectionsPage(subject, lessonid=None):
 def login():
     return app.send_static_file('frontend/EnterpriseLogin/index.html')
 
-@app.route('/api/enter')
+@app.route('/api/enter', methods=['POST'])
 def enter():
-    loginUser = request.args.get('email', 0, type=str)
-    passwordUser = request.args.get('pass', 0, type=str)
-    if(loginUser=='jesus' and passwordUser == '1111'):
+    data = json.loads(request.data)
+    emailUser = data['email']
+    passwordUser = data['pass']
+
+    print()
+    if(emailUser=='jesus@gmail.com' and passwordUser == '111111'):
         return jsonify(result='/mypage')
     else:
         return jsonify(result='Error')
@@ -62,7 +66,7 @@ def register():
 #
 #
 
-@app.route('/api/createperson')
+@app.route('/api/createperson',  methods=['POST'])
 def createperson():
     users = models.User(name='susan2', email='susan2@email.com')
     db.session.add(users)
@@ -83,7 +87,8 @@ def getperson():
     for u in users:
         nameU = u.name
         emailU = u.email
-        time = {nameU: emailU}
+        passwordU = u.password
+        time = {nameU: [emailU, passwordU]}
         finishArray.append(time)
     return jsonify(finishArray)
 
