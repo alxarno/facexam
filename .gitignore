@@ -3,3 +3,4 @@
 # dependencies
 .idea
 __pycache__
+app.db
