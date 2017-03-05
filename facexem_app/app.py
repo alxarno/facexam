@@ -12,7 +12,6 @@ lm.init_app(app)
 lm.login_view = 'login'
 CORS(app)
 
-
 @app.route('/login')
 def login():
         return "It's may be your's login page"

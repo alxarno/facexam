@@ -3,6 +3,8 @@ from flask_login import login_user, logout_user, current_user, login_required
 from ..extensions import db, lm
 import json
 from .models import User
+from flask_cors import cross_origin
+
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
@@ -11,7 +13,7 @@ def before_request():
     g.user = current_user
 
 @user.route('/create', methods=['POST'])
-def create():
+def create_user():
     data = json.loads(request.data)
     name = data['name']
     email = data['email']
@@ -22,21 +24,29 @@ def create():
         db.session.add(new_user)
         db.session.commit()
         print("User "+name+" is created")
-        return "1"
+        return jsonify(result="Success")
     else:
-        return "0"
+        return jsonify(result="Error")
+
+@user.route('/delete', methods=['POST'])
+def delete_user():
+    data = json.loads(request.data)
+    user_id = data['id']
+    User.query.filter_by(id=user_id).delete()
+    db.session.commit()
+    return 'User with id = '+user_id+' deleted'
 
 
 
 @user.route('/getall', methods=['POST'])
-def getUsers():
+def get_users():
     users = User.query.all()
-    find=[]
+    find = []
     for person in users:
         give = [{'id': person.id,
                 'name': person.name,
                  'email': person.email,
-                 'pass': person.pw_hash,
+                 'token': person.token,
                  'role': person.role}]
         find.append(give)
     return jsonify(find)
@@ -44,10 +54,9 @@ def getUsers():
 
 
 @user.route('/login', methods=['POST'])
-def loginUser():
+def login_user():
     if g.user is not None and g.user.is_authenticated:
-        print(g.user)
-        return 'Hello'
+        return jsonify(result="Success")
     else:
         data = json.loads(request.data)
         email = data['email']
@@ -55,23 +64,20 @@ def loginUser():
         possible_user = User.query.filter_by(email=email).first()
         if possible_user:
             if possible_user.check_password(password):
-                session['remember_me'] = possible_user.get_id
-                remember_me = session['remember_me']
-                session.pop('remember_me', None)
-                login_user(possible_user, remember=remember_me)
-                return "Success"
+
+                return jsonify(result="Success")
             else:
-                return "Fail"
+                return jsonify(result="Error")
 
 
 
 @user.route('/getpage', methods=['POST', 'GET'])
 @login_required
-def getpage():
+def get_page():
     return "Ye bro, you're authorized"
 
 
-@user.route('/logout',  methods=['POST'])
+@user.route('/logout',  methods=['POST', "GET"])
 def logout():
     logout_user()
     return "good by"
