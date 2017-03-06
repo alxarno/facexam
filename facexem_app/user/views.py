@@ -1,50 +1,96 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session, g
-from flask_login import login_user, logout_user, current_user, login_required
 from ..extensions import db, lm
 import json
-from .models import User
-from flask_cors import cross_origin
-
+from .models import User, TestUser
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
-@user.before_request
-def before_request():
-    g.user = current_user
 
 @user.route('/create', methods=['POST'])
 def create_user():
     data = json.loads(request.data)
-    name = data['name']
     email = data['email']
-    password = data['pass']
-    new_user = User(name, password, email)
-    # Check for duplicates and creating
-    if User.query.filter_by(email=email).first() is None:
-        db.session.add(new_user)
+    current_email = User.query.filter_by(email=email).first()
+    if current_email is None:
+        new_test_user = TestUser(email)
+        db.session.add(new_test_user)
         db.session.commit()
-        print("User "+name+" is created")
-        return jsonify(result="Success")
+        print(new_test_user.key)
+        return jsonify(result="Prove email")
     else:
         return jsonify(result="Error")
+
+
+@user.route('/prove_email', methods=['POST'])
+def prove_email():
+    data = json.loads(request.data)
+    email = data['email']
+    name = data['name']
+    key = data['key']
+    password = data['pass']
+    created_user = TestUser.query.filter_by(key=key).first()
+    if created_user:
+        if created_user.email == email:
+            new_user = User(name, password, email)
+            db.session.add(new_user)
+            token = new_user.token
+            session['token'] = token
+            session.pop('test_email', None)
+            TestUser.query.filter_by(email=email).delete()
+            db.session.commit()
+            print("User " + name + " is created")
+            return jsonify(result="Success")
+        else:
+            return jsonify(result='Bad email')
+    else:
+        return jsonify(result="Bad key")
+
+
+@user.route('/get_all_test', methods=['POST'])
+def get_test():
+    tests = TestUser.query.all()
+    find = []
+    for person in tests:
+        give = [{'id': person.id,
+                 'email': person.email,
+                 'key': person.key}]
+        find.append(give)
+    return jsonify(find)
+
+
+@user.route('/delete_test', methods=['POST'])
+def delete_test():
+    data = json.loads(request.data)
+    test_id = data['id']
+    current_test = TestUser.query.filter_by(id=test_id).first()
+    if current_test:
+        TestUser.query.filter_by(id=test_id).delete()
+        db.session.commit()
+        return 'Test user with id = ' + test_id + ' deleted'
+    else:
+        return "Test user with id = " + test_id + " haven't"
+
 
 @user.route('/delete', methods=['POST'])
 def delete_user():
     data = json.loads(request.data)
     user_id = data['id']
-    User.query.filter_by(id=user_id).delete()
-    db.session.commit()
-    return 'User with id = '+user_id+' deleted'
+    current_user = User.query.filter_by(id=user_id).first()
+    if current_user:
+        User.query.filter_by(id=user_id).delete()
+        db.session.commit()
+        return 'User with id = ' + user_id + ' deleted'
+    else:
+        return "User with id = " + user_id + " haven't"
 
 
-
-@user.route('/getall', methods=['POST'])
+@user.route('/get_all', methods=['POST'])
 def get_users():
     users = User.query.all()
     find = []
     for person in users:
         give = [{'id': person.id,
-                'name': person.name,
+                 'name': person.name,
                  'email': person.email,
                  'token': person.token,
                  'role': person.role}]
@@ -52,10 +98,17 @@ def get_users():
     return jsonify(find)
 
 
+@user.route('/get_token', methods=['POST'])
+def get_token():
+    if 'token' in session:
+        return session['token']
+    else:
+        return redirect(url_for('login'))
+
 
 @user.route('/login', methods=['POST'])
 def login_user():
-    if g.user is not None and g.user.is_authenticated:
+    if 'token' in session:
         return jsonify(result="Success")
     else:
         data = json.loads(request.data)
@@ -64,20 +117,14 @@ def login_user():
         possible_user = User.query.filter_by(email=email).first()
         if possible_user:
             if possible_user.check_password(password):
-
+                token = possible_user.token
+                session['token'] = token
                 return jsonify(result="Success")
             else:
                 return jsonify(result="Error")
 
 
-
-@user.route('/getpage', methods=['POST', 'GET'])
-@login_required
-def get_page():
-    return "Ye bro, you're authorized"
-
-
-@user.route('/logout',  methods=['POST', "GET"])
+@user.route('/logout', methods=['POST', "GET"])
 def logout():
-    logout_user()
-    return "good by"
+    session.pop('token', None)
+    return redirect(url_for('login'))
