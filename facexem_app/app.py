@@ -16,7 +16,7 @@ CORS(app)
 @app.route('/login')
 def login():
     if 'token' in session:
-        return "It's may be your's login page"
+        return session['token']
     else:
         return app.send_static_file('enter/index.html')
 

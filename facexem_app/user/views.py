@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session, g
 from ..extensions import db, lm
 import json
-from .models import User, TestUser
+from .models import User, TestUser, UserPage
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
@@ -36,6 +36,8 @@ def prove_email():
             token = new_user.token
             session['token'] = token
             session.pop('test_email', None)
+            info = UserPage(photo='', about='', user_active_achivs='', user=new_user)
+            db.session.add(info)
             TestUser.query.filter_by(email=email).delete()
             db.session.commit()
             print("User " + name + " is created")
@@ -128,3 +130,39 @@ def login_user():
 def logout():
     session.pop('token', None)
     return redirect(url_for('login'))
+
+
+@user.route('/get_page_info', methods=['POST'])
+def get_page_info():
+    data = json.loads(request.data)
+    token = data['token']
+    maybe_user = User.query.filter_by(token=token).first()
+    if maybe_user:
+        info = maybe_user.info_page
+        photo = info[0].photo
+        about = info[0].about
+        achivs = json.loads(info[0].user_active_achivs)
+        background = info[0].user_active_background
+        finish = [{'photo': photo, 'about': about, 'achivs': achivs, 'background': background}]
+        return jsonify(finish)
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/set_page_info', methods=['POST'])
+def set_page_info():
+    data = json.loads(request.data)
+    token = data['token']
+    maybe_user = User.query.filter_by(token=token).first()
+    if maybe_user:
+        info = maybe_user.info_page
+        info[0].photo = data['photo']
+        info[0].about = data['about']
+        achivs = json.dumps(data['achivs'])
+        backgrs = data['background']
+        info[0].user_active_achivs = achivs
+        info[0].user_active_background = backgrs
+        db.session.commit()
+        return 'Success'
+    else:
+        return "Fail"

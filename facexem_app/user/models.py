@@ -3,9 +3,7 @@ from .constans import ROLES
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 from config import SECRET_KEY
-import base64
 import time
-
 
 
 class User(db.Model):
@@ -18,6 +16,7 @@ class User(db.Model):
     token = db.Column(db.String(255))
     pw_hash = db.Column(db.String(255))
     role = db.Column(db.SmallInteger, default=ROLES['USER'])
+    info_page = db.relationship('UserPage', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -71,7 +70,7 @@ class User(db.Model):
 class TestUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
-    key = db.Column(db.String(20),  unique=True)
+    key = db.Column(db.String(20), unique=True)
 
     def __init__(self, email=None):
         self.email = email
@@ -87,3 +86,28 @@ class TestUser(db.Model):
 
     def __repr__(self):
         return '<TestUser %r>' % self.key
+
+
+class UserPage(db.Model):
+    __tablename__ = "users_info_page"
+    id = db.Column(db.Integer, primary_key=True)
+    photo = db.Column(db.String(64), nullable=False)
+    about = db.Column(db.String(256), nullable=False)
+    user_active_achivs = db.Column(db.String(256))
+    user_active_background = db.Column(db.String(20))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+
+    def set_photo(self, photo):
+        self.photo = photo
+
+    def get_photo(self):
+        return self.photo
+
+    def set_about(self, about):
+        self.about = about
+
+    def set_active_achivs(self, achivs):
+        self.user_active_achivs = achivs
+
+    def __repr__(self):
+        return '<UserPage %r>' % self.user_id
