@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session, g
-from ..extensions import db, lm
+from ..extensions import db
 import json
 from .models import User, TestUser, UserPage
 
