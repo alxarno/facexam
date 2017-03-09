@@ -3,7 +3,7 @@ from ..extensions import db
 import json
 from .models import Subject, Lection, Theme
 
-subject = Blueprint('subject', __name__, url_prefix='/subject')
+subject = Blueprint('subject', __name__, url_prefix='/api/subject')
 
 
 @subject.route('/get_info', methods=['POST'])
@@ -42,7 +42,7 @@ def get_lections():
             lections = j.lections
             lections_final = []
             for k in lections:
-                lections_final.append(json.loads(k.content))
+                lections_final.append({"id": k.id, "name": k.name})
             theme.append({'name': j.name, 'lections': lections_final})
         return jsonify(theme)
     else:
@@ -85,12 +85,28 @@ def create_lection():
     data = json.loads(request.data)
     theme_id = data['theme_id']
     lection_name = data['lection_name']
+    lection_description = data['description']
+    lection_type = data['type']
     lection_content = json.dumps(data['lection_content'])
     current_them = Theme.query.get(theme_id)
     if current_them:
-        l = Lection(name=lection_name, content=lection_content, theme=current_them)
+        l = Lection(name=lection_name, content=lection_content, theme=current_them,
+                    description=lection_description, type=lection_type)
         db.session.add(l)
         db.session.commit()
         return jsonify(result='Success')
     else:
         return jsonify(result='Error: this theme havent')
+
+
+@subject.route('/delete_lection', methods=['POST'])
+def delete_lection():
+    data = json.loads(request.data)
+    lection_id = data['id']
+    u = Lection.query.filter_by(id=lection_id).first()
+    if u:
+        u.delete()
+        db.session.commit()
+        return jsonify(result='Success')
+    else:
+        return jsonify(result='Error: this lection havent')

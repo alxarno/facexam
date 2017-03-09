@@ -22,5 +22,7 @@ class Lection(db.Model):
     __tablename__ = "themes_lections"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False)
+    description = db.Column(db.String(256))
+    type = db.Column(db.String(20))
     content = db.Column(db.String(10000))
     themes_id = db.Column(db.Integer(), db.ForeignKey('subjects_themes.id'))

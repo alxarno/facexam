@@ -1,9 +1,10 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session, g
 from ..extensions import db
 import json
-from .models import User, TestUser, UserPage
+from .models import User, TestUser, UserPage, UserSubjects
+from ..subject.models import Subject
 
-user = Blueprint('user', __name__, url_prefix='/user')
+user = Blueprint('user', __name__, url_prefix='/api/user')
 
 
 @user.route('/create', methods=['POST'])
@@ -166,3 +167,87 @@ def set_page_info():
         return 'Success'
     else:
         return "Fail"
+
+
+@user.route('/set_subjects', methods=['POST'])
+def set_subjects():
+    data = json.loads(request.data)
+    codenames = data['codenames']
+    token = data['token']
+    maybe_user = User.query.filter_by(token=token).first()
+    if maybe_user:
+        for name in codenames:
+            user_subject = UserSubjects(subject_codename=name, passed_lections=json.dumps([]),
+                                        passed_tests='', experience=0,
+                                        points_of_tests='', user=maybe_user)
+            db.session.add(user_subject)
+        db.session.commit()
+        return jsonify(result="Success")
+    else:
+        return jsonify(result='Fail this token is havent')
+
+
+@user.route('/get_subjects', methods=['POST'])
+def get_subjects():
+    data = json.loads(request.data)
+    token = data['token']
+    maybe_user = User.query.filter_by(token=token).first()
+    if maybe_user:
+        subjects = maybe_user.info_subjects
+        result = []
+        for s in subjects:
+            subject = {'codename': s.subject_codename,
+                       'lections': s.passed_lections,
+                       'tests': s.passed_tests,
+                       'points': s.points_of_tests,
+                       'experience': s.experience}
+            result.append(subject)
+        return jsonify(result)
+    else:
+        return jsonify(result='Fail this token is havent')
+
+
+@user.route('/get_lections', methods=['POST'])
+def get_lections():
+    data = json.loads(request.data)
+    subject_code_name = data['subject_code_name']
+    token = data['token']
+    users_lections = User.query.filter_by(token=token).first()
+    print(users_lections.info_subjects[0].passed_lections)
+    current_subject = Subject.query.filter_by(codename=subject_code_name).first()
+    if current_subject:
+        themes = current_subject.themes
+        theme = []
+        number_theme = 1
+        for j in themes:
+            lections = j.lections
+            lections_final = []
+            number = 0
+            for k in lections:
+                lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
+                           'number': number, 'type': k.type, 'theme': number_theme}
+                number += 1
+                lections_final.append(lection)
+            number_theme += 1
+            theme.append({'name': j.name, 'lections': lections_final})
+        return jsonify(theme)
+    else:
+        return jsonify(result='Error: this subject havent')
+
+
+@user.route('/set_view_lection', methods=['POST'])
+def set_view_lection():
+    data = json.loads(request.data)
+    token = data['token']
+    lection_id = data['lection_id']
+    users_lections = User.query.filter_by(token=token).first()
+    if users_lections:
+        lections = users_lections.info_subjects[0]
+        print(lections.passed_lections)
+        passed_lections = json.loads(lections.passed_lections)
+        passed_lections.append(lection_id)
+        lections.passed_lections = json.dumps(passed_lections)
+        db.session.commit()
+        return jsonify(result="Success")
+    else:
+        return jsonify(result='Fail this token is havent')

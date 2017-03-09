@@ -16,7 +16,9 @@ class User(db.Model):
     token = db.Column(db.String(255))
     pw_hash = db.Column(db.String(255))
     role = db.Column(db.SmallInteger, default=ROLES['USER'])
+
     info_page = db.relationship('UserPage', backref='user')
+    info_subjects = db.relationship('UserSubjects', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -108,6 +110,20 @@ class UserPage(db.Model):
 
     def set_active_achivs(self, achivs):
         self.user_active_achivs = achivs
+
+    def __repr__(self):
+        return '<UserPage %r>' % self.user_id
+
+
+class UserSubjects(db.Model):
+    __tablename__ = "user_subjects"
+    id = db.Column(db.Integer, primary_key=True)
+    subject_codename = db.Column(db.String(64))
+    passed_lections = db.Column(db.String(512))
+    passed_tests = db.Column(db.String(512))
+    points_of_tests = db.Column(db.Integer)
+    experience = db.Column(db.Integer)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
         return '<UserPage %r>' % self.user_id
