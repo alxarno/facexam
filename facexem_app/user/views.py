@@ -276,3 +276,34 @@ def set_view_lection():
             return jsonify(result='Error: user are havent this subject')
     else:
         return jsonify(result='Fail this token is havent')
+
+
+@user.route('/get_progress', methods=['POST'])
+def get_progress():
+    data = json.loads(request.data)
+    token = data['token']
+    now_user = User.query.filter_by(token=token).first()
+    if now_user:
+        subjects = now_user.info_subjects
+        if subjects:
+            final = []
+            for subject in subjects:
+                subject_code = subject.subject_codename
+                lections = len(json.loads(subject.passed_lections))
+                real_subject = Subject.query.filter_by(codename=subject_code).first()
+                name = real_subject.name
+                count_lections = 0
+                for theme in real_subject.themes:
+                    count_lections += len(theme.lections)
+                if count_lections == 0:
+                    final.append({name: 0})
+                else:
+                    final.append({name: (lections/count_lections)*100})
+            return jsonify(final)
+        else:
+            return jsonify(result='Error: user are havent this subject')
+    else:
+        return jsonify(result='Fail this token is havent')
+
+
+
