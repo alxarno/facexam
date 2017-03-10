@@ -125,6 +125,8 @@ def login_user():
                 return jsonify(result="Success")
             else:
                 return jsonify(result="Error")
+        else:
+            return jsonify(result="Error")
 
 
 @user.route('/logout', methods=['POST', "GET"])
@@ -213,41 +215,64 @@ def get_lections():
     subject_code_name = data['subject_code_name']
     token = data['token']
     users_lections = User.query.filter_by(token=token).first()
-    print(users_lections.info_subjects[0].passed_lections)
-    current_subject = Subject.query.filter_by(codename=subject_code_name).first()
-    if current_subject:
-        themes = current_subject.themes
-        theme = []
-        number_theme = 1
-        for j in themes:
-            lections = j.lections
-            lections_final = []
-            number = 0
-            for k in lections:
-                lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
-                           'number': number, 'type': k.type, 'theme': number_theme}
-                number += 1
-                lections_final.append(lection)
-            number_theme += 1
-            theme.append({'name': j.name, 'lections': lections_final})
-        return jsonify(theme)
+    true_subject = ''
+    for subject in users_lections.info_subjects:
+        if subject.subject_codename == subject_code_name:
+            true_subject = subject
+    if true_subject != '':
+        if true_subject.passed_lections != '':
+            users_lections = json.loads(true_subject.passed_lections)
+        else:
+            users_lections = []
+        current_subject = Subject.query.filter_by(codename=subject_code_name).first()
+        if current_subject:
+            themes = current_subject.themes
+            theme = []
+            number_theme = 1
+            for j in themes:
+                lections = j.lections
+                lections_final = []
+                number = 0
+                for k in lections:
+                    if str(k.id) in users_lections:
+                        lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
+                                   'number': number, 'type': k.type, 'theme': number_theme, 'done': True}
+                    else:
+                        lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
+                                   'number': number, 'type': k.type, 'theme': number_theme}
+                    number += 1
+                    lections_final.append(lection)
+                number_theme += 1
+                theme.append({'name': j.name, 'lections': lections_final})
+            return jsonify(theme)
+        else:
+            return jsonify(result='Error: this subject havent')
     else:
-        return jsonify(result='Error: this subject havent')
+        return jsonify(result='Error: user are havent this subject')
 
 
 @user.route('/set_view_lection', methods=['POST'])
 def set_view_lection():
     data = json.loads(request.data)
     token = data['token']
+    subject_code_name = data['subject_code_name']
     lection_id = data['lection_id']
     users_lections = User.query.filter_by(token=token).first()
+    true_subject = ''
+    for subject in users_lections.info_subjects:
+        if subject.subject_codename == subject_code_name:
+            true_subject = subject
     if users_lections:
-        lections = users_lections.info_subjects[0]
-        print(lections.passed_lections)
-        passed_lections = json.loads(lections.passed_lections)
-        passed_lections.append(lection_id)
-        lections.passed_lections = json.dumps(passed_lections)
-        db.session.commit()
-        return jsonify(result="Success")
+        if true_subject != '':
+            if true_subject.passed_lections != '':
+                passed_lections = json.loads(true_subject.passed_lections)
+            else:
+                passed_lections = []
+            passed_lections.append(lection_id)
+            true_subject.passed_lections = json.dumps(passed_lections)
+            db.session.commit()
+            return jsonify(result="Success")
+        else:
+            return jsonify(result='Error: user are havent this subject')
     else:
         return jsonify(result='Fail this token is havent')
