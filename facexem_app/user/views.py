@@ -6,7 +6,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject
+from ..subject.models import Subject, Lection
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
@@ -41,7 +41,7 @@ def prove_email():
             token = new_user.token
             session['token'] = token
             session.pop('test_email', None)
-            info = UserPage(photo='', about='', user_active_achivs='', user=new_user)
+            info = UserPage(photo='', about='', user_active_achivs='', user=new_user, last_lections=json.dumps([]))
             db.session.add(info)
             TestUser.query.filter_by(email=email).delete()
             db.session.commit()
@@ -398,4 +398,41 @@ def get_notifications():
         return jsonify(result='Fail this token is havent')
 
 
+@user.route('/get_last_lections', methods=['POST'])
+def get_last_lections():
+    data = json.loads(request.data)
+    token = data['token']
+    now_user = User.query.filter_by(token=token).first()
+    if now_user:
+        lections = now_user.info_page[0].last_lections
+        return lections
+    else:
+        return jsonify(result='Fail this token is havent')
 
+
+@user.route('/get_lection', methods=['POST'])
+def get_lection():
+    data = json.loads(request.data)
+    token = data['token']
+    lection_id = data['lection_id']
+    now_user = User.query.filter_by(token=token).first()
+    if now_user:
+        last_lections = json.loads(now_user.info_page[0].last_lections)
+        if lection_id not in last_lections:
+            result_last_lections = [lection_id]
+            for i in range(6):
+                if len(last_lections) > i:
+                    result_last_lections.append(last_lections[i])
+                else:
+                    break
+            now_user.info_page[0].last_lections = json.dumps(result_last_lections)
+            db.session.commit()
+        lection = Lection.query.get(lection_id)
+        if lection:
+            result = {'name': lection.name,
+                      'content': json.loads(lection.content)}
+            return jsonify(result=result)
+        else:
+            return jsonify(result='Fail this lection is havent')
+    else:
+        return jsonify(result='Fail this token is havent')

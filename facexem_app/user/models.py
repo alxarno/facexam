@@ -97,6 +97,7 @@ class UserPage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     photo = db.Column(db.String(64), nullable=False)
     about = db.Column(db.String(256), nullable=False)
+    last_lections = db.Column(db.String(64))
     user_active_achivs = db.Column(db.String(256))
     user_active_background = db.Column(db.String(20))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
