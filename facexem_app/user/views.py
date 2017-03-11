@@ -353,3 +353,22 @@ def get_activity():
         return jsonify(final, dates)
     else:
         return jsonify(result='Fail this token is havent')
+
+
+@user.route('/change_design', methods=['POST'])
+def change_design():
+    data = json.loads(request.data)
+    token = data['token']
+    users_data = data['user_data']
+    now_user = User.query.filter_by(token=token).first()
+    if now_user:
+        user_settings = now_user.info_page[0]
+        now_user.name = users_data['name']
+        user_settings.photo = users_data['photo']
+        user_settings.about = users_data['about']
+        user_settings.user_active_achivs = json.dumps(users_data['achivs'])
+        user_settings.user_active_background = users_data['background']
+        db.session.commit()
+        return jsonify(result="Success")
+    else:
+        return jsonify(result='Fail this token is havent')
