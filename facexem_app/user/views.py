@@ -1,7 +1,11 @@
-from flask import Blueprint, redirect, url_for, request, jsonify, session, g
-from ..extensions import db
+import datetime
+import time
 import json
-from .models import User, TestUser, UserPage, UserSubjects
+
+from flask import Blueprint, redirect, url_for, request, jsonify, session
+
+from .models import User, TestUser, UserPage, UserSubjects, UserActivity
+from ..extensions import db
 from ..subject.models import Subject
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
@@ -257,17 +261,30 @@ def set_view_lection():
     token = data['token']
     subject_code_name = data['subject_code_name']
     lection_id = data['lection_id']
-    users_lections = User.query.filter_by(token=token).first()
+    now_user = User.query.filter_by(token=token).first()
+    now_time = time.localtime()
+    user_activities = now_user.activity
+    real_activ = ''
+    if user_activities:
+        for activ in user_activities:
+            if activ.date == datetime.time(now_time.tm_year, now_time.tm_mon, now_time.tm_mday):
+                real_activ = activ
+    if real_activ == '':
+        real_activ = UserActivity(date=datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday),
+                                  lections=0, user=now_user)
+        db.session.add(real_activ)
+        db.session.commit()
     true_subject = ''
-    for subject in users_lections.info_subjects:
+    for subject in now_user.info_subjects:
         if subject.subject_codename == subject_code_name:
             true_subject = subject
-    if users_lections:
+    if now_user:
         if true_subject != '':
             if true_subject.passed_lections != '':
                 passed_lections = json.loads(true_subject.passed_lections)
             else:
                 passed_lections = []
+            real_activ.lections += 1
             passed_lections.append(lection_id)
             true_subject.passed_lections = json.dumps(passed_lections)
             db.session.commit()
@@ -298,7 +315,7 @@ def get_progress():
                 if count_lections == 0:
                     final.append({name: 0})
                 else:
-                    final.append({name: (lections/count_lections)*100})
+                    final.append({name: (lections / count_lections) * 100})
             return jsonify(final)
         else:
             return jsonify(result='Error: user are havent this subject')
@@ -306,4 +323,33 @@ def get_progress():
         return jsonify(result='Fail this token is havent')
 
 
-
+@user.route('/get_activity', methods=['POST'])
+def get_activity():
+    data = json.loads(request.data)
+    token = data['token']
+    now_user = User.query.filter_by(token=token).first()
+    now_time = time.localtime()
+    now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
+    final = []
+    # creating array with last 7 days dates
+    dates = []
+    i = 6
+    while i >= 0:
+        date = now_date - datetime.timedelta(days=i)
+        dates.append(str(date))
+        i -= 1
+    if now_user:
+        user_activities = now_user.activity
+        # test, is day of activity in last 7 days
+        for day in user_activities:
+            if str(day.date) in dates:
+                final.append(day.lections)
+        if len(final) < 7:
+            times = len(final)
+            while times < 7:
+                final.append(0)
+                times += 1
+        final = list(reversed(final))
+        return jsonify(final, dates)
+    else:
+        return jsonify(result='Fail this token is havent')

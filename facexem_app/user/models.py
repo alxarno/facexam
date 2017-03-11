@@ -19,6 +19,7 @@ class User(db.Model):
 
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
+    activity = db.relationship('UserActivity', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -126,4 +127,15 @@ class UserSubjects(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
-        return '<UserPage %r>' % self.user_id
+        return '<UserSubjects %r>' % self.user_id
+
+
+class UserActivity(db.Model):
+    __tablename__ = "user_activity"
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date)
+    lections = db.Column(db.Integer)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<UserActivity %r>' % self.user_id
