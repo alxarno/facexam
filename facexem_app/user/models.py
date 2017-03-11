@@ -20,6 +20,7 @@ class User(db.Model):
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
+    notifications = db.relationship('UserNotifications', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -135,6 +136,18 @@ class UserActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     lections = db.Column(db.Integer)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<UserActivity %r>' % self.user_id
+
+
+class UserNotifications(db.Model):
+    __tablename__ = "user_notifications"
+    id = db.Column(db.Integer, primary_key=True)
+    author = db.Column(db.Integer)
+    text = db.Column(db.String(128))
+    type = db.Column(db.String(20))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):

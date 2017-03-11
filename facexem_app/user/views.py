@@ -372,3 +372,30 @@ def change_design():
         return jsonify(result="Success")
     else:
         return jsonify(result='Fail this token is havent')
+
+
+@user.route('/get_notifications', methods=['POST'])
+def get_notifications():
+    data = json.loads(request.data)
+    token = data['token']
+    now_user = User.query.filter_by(token=token).first()
+    result = []
+    if now_user:
+        notifics = now_user.notifications
+        if notifics:
+            for notif in notifics:
+                author = User.query.get(notif.author)
+                author_photo = author.info_page[0].photo
+                notif = {'author': author.name,
+                         'authorPhoto': author_photo,
+                         'text': notif.text,
+                         'type': notif.type}
+                result.append(notif)
+            return jsonify(result)
+        else:
+            return jsonify(result)
+    else:
+        return jsonify(result='Fail this token is havent')
+
+
+
