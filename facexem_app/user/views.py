@@ -174,9 +174,9 @@ def set_page_info():
         info[0].user_active_achivs = achivs
         info[0].user_active_background = backgrs
         db.session.commit()
-        return 'Success'
+        return jsonify(result="Success")
     else:
-        return "Fail"
+        return jsonify(result="Error")
 
 
 @user.route('/set_subjects', methods=['POST'])
