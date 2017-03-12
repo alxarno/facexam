@@ -20,8 +20,7 @@ def create_user():
         new_test_user = TestUser(email)
         db.session.add(new_test_user)
         db.session.commit()
-        print(new_test_user.key)
-        return jsonify(result="Prove email")
+        return jsonify(result=new_test_user.key)
     else:
         return jsonify(result="Error")
 
@@ -81,14 +80,16 @@ def delete_test():
 @user.route('/delete', methods=['POST'])
 def delete_user():
     data = json.loads(request.data)
-    user_id = data['id']
-    current_user = User.query.filter_by(id=user_id).first()
+    user_token = data['token']
+    current_user = User.query.filter_by(token=user_token).first()
     if current_user:
-        User.query.filter_by(id=user_id).delete()
+        name = current_user.name
+        User.query.filter_by(token=user_token).delete()
         db.session.commit()
-        return 'User with id = ' + user_id + ' deleted'
+        print('User ' + name + ' is deleted')
+        return jsonify(result='Success')
     else:
-        return "User with id = " + user_id + " haven't"
+        return jsonify(result="Error")
 
 
 @user.route('/get_all', methods=['POST'])
@@ -108,7 +109,7 @@ def get_users():
 @user.route('/get_token', methods=['POST'])
 def get_token():
     if 'token' in session:
-        return session['token']
+        return jsonify(result=session['token'])
     else:
         return redirect(url_for('login'))
 
@@ -135,8 +136,11 @@ def login_user():
 
 @user.route('/logout', methods=['POST', "GET"])
 def logout():
-    session.pop('token', None)
-    return redirect(url_for('login'))
+    if 'token' not in session:
+        return jsonify(result="Error")
+    else:
+        session.pop('token', None)
+        return redirect(url_for('login'))
 
 
 @user.route('/get_page_info', methods=['POST'])

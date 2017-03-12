@@ -5,6 +5,7 @@ from .subject.views import subject
 from flask_cors import CORS
 
 app = Flask('Facexem', instance_relative_config=True, static_folder='frontend')
+
 app.register_blueprint(user)
 app.register_blueprint(subject)
 app.config.from_object('config')

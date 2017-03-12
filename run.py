@@ -6,4 +6,4 @@ os.system('cls')
 for line in f:
     line = line.rstrip('\n')
     print(line)
-app.run(port=9999, debug=True)
+app.run(port=9999, debug=False)
