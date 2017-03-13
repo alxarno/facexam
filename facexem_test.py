@@ -4,7 +4,7 @@ import unittest
 import tempfile
 import json
 from facexem_app import extensions
-from tests import create_user, delete_user, get_page_info, set_page_info
+from tests import create_user, delete_user, get_page_info, set_page_info, set_subject
 
 
 class FacexemTestCase(unittest.TestCase):
@@ -56,6 +56,9 @@ class FacexemTestCase(unittest.TestCase):
         assert 'Success' in data['result']
         rv = get_page_info.get_page_info(self, '12', '23', ['111', '2222', '222'], '23')
         assert "Success" == rv
+        rv = set_subject.set_subject(self, ['math_pro'])
+        data = json.loads(rv.data)
+        assert 'Success' in data['result']
         rv = delete_user.delete_user(self)
         data = json.loads(rv.data)
         assert 'Success' in data['result']

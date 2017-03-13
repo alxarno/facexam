@@ -4,7 +4,7 @@ import json
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
-from .models import User, TestUser, UserPage, UserSubjects, UserActivity
+from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
 from ..subject.models import Subject, Lection
 
@@ -83,6 +83,22 @@ def delete_user():
     user_token = data['token']
     current_user = User.query.filter_by(token=user_token).first()
     if current_user:
+        # deleting user's information
+        page = current_user.info_page[0]
+        UserPage.query.filter_by(id=page.id).delete()
+        # deleting user's subjects
+        subjects = current_user.info_subjects
+        for sub in subjects:
+            Subject.query.filter_by(id=sub.id).delete()
+        # deleting user's notifications
+        notifications = current_user.notifications
+        for notif in notifications:
+            UserNotifications.query.filter_by(id=notif.id).delete()
+        # deleting user's activity
+        activity = current_user.activity
+        for day in activity:
+            UserActivity.query.filter_by(id=day.id).delete()
+        # deleting user
         name = current_user.name
         User.query.filter_by(token=user_token).delete()
         db.session.commit()
@@ -440,3 +456,12 @@ def get_lection():
             return jsonify(result='Fail this lection is havent')
     else:
         return jsonify(result='Fail this token is havent')
+
+
+@user.route('/get_users_page', methods=['POST'])
+def get_users_pages():
+    users_pages = UserPage.query.all()
+    final = 0
+    for page in users_pages:
+        final += 1
+    return jsonify(result=final)

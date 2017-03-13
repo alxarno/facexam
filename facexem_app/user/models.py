@@ -148,6 +148,7 @@ class UserNotifications(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     author = db.Column(db.Integer)
     text = db.Column(db.String(128))
+    date = db.Column(db.Integer)
     type = db.Column(db.String(20))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
