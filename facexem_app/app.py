@@ -2,12 +2,14 @@ from flask import Flask, jsonify, session, url_for, request
 from .extensions import db, lm
 from .user.views import user
 from .subject.views import subject
+from .admin.views import admin
 from flask_cors import CORS
 
 app = Flask('Facexem', instance_relative_config=True, static_folder='frontend')
 
 app.register_blueprint(user)
 app.register_blueprint(subject)
+app.register_blueprint(admin)
 app.config.from_object('config')
 db.app = app
 db.init_app(app)

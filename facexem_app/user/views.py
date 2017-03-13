@@ -52,18 +52,6 @@ def prove_email():
         return jsonify(result="Bad key")
 
 
-@user.route('/get_all_test', methods=['POST'])
-def get_test():
-    tests = TestUser.query.all()
-    find = []
-    for person in tests:
-        give = [{'id': person.id,
-                 'email': person.email,
-                 'key': person.key}]
-        find.append(give)
-    return jsonify(find)
-
-
 @user.route('/delete_test', methods=['POST'])
 def delete_test():
     data = json.loads(request.data)
