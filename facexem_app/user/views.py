@@ -1,12 +1,13 @@
 import datetime
 import time
 import json
+import random
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
-from ..subject.models import Subject, Lection
+from ..subject.models import Subject, Lection, Task
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
@@ -419,5 +420,54 @@ def get_lection():
     else:
         return jsonify(result='Fail this token is havent')
 
+
+@user.route('/get_task', methods=['POST'])
+def get_task():
+    user = verif_user()
+    data = json.loads(request.data)
+    try:
+        codename = data['subject_codename']
+    except:
+        return jsonify(result='Error')
+    try:
+        number = data['number_task']
+    except:
+        number = 'any'
+    if user:
+        subject = Subject.query.filter_by(codename=codename).first()
+        subject_id = subject.id
+        if number == 'any':
+            tasks = Task.query.filter_by(subject_id=subject_id).limit(20).all()
+        else:
+            tasks = Task.query.filter_by(subject_id=subject_id, number=number).limit(20).all()
+        if len(tasks) > 0:
+            num_rnd_task = random.randint(0, len(tasks)-1)
+            final_task = tasks[num_rnd_task]
+            final_task = {'id': final_task.id, 'content': final_task.content}
+            return jsonify(final_task)
+        else:
+            return jsonify(result="Empty")
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/check_task', methods=['POST'])
+def check_task():
+    user = verif_user()
+    data = json.loads(request.data)
+    try:
+        task_id = data['task_id']
+        answer = data['answer']
+    except:
+        return jsonify(result='Error')
+    if user:
+        task = Task.query.filter_by(id=task_id).first()
+        if task.answer == answer:
+            sent = True
+        else:
+            sent = False
+        return jsonify({'user_answer': answer, 'right': sent, 'description': task.description})
+    else:
+        return jsonify(result="Error")
 
 

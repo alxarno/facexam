@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 
 from ..user.models import User, TestUser
 from ..user.constans import ROLES
+from ..subject.models import Task
 from ..extensions import db
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -60,3 +61,21 @@ def get_users():
         return jsonify(find)
     else:
         return jsonify(result="Error")
+
+
+@admin.route('/get_task', methods=['POST'])
+def get_task():
+    if verif_admin():
+        data = json.loads(request.data)
+        try:
+            task_id = data['task_id']
+        except:
+            return jsonify(result='Error')
+        task = Task.query.filter_by(id=task_id).first()
+        if task:
+            return jsonify({'id': task.id,
+                            'content': task.content,
+                            'answer': task.answer,
+                            'description': task.description})
+        else:
+            return jsonify(result='Error')
