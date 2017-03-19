@@ -11,10 +11,23 @@ from ..subject.models import Subject, Lection
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
 
+def verif_user():
+    try:
+        data = json.loads(request.data)
+        user_token = data['token']
+        maybe_user = User.query.filter_by(token=user_token).first()
+        return maybe_user
+    except:
+        return False
+
+
 @user.route('/create', methods=['POST'])
 def create_user():
-    data = json.loads(request.data)
-    email = data['email']
+    try:
+        data = json.loads(request.data)
+        email = data['email']
+    except:
+        return jsonify(result="Error")
     current_email = User.query.filter_by(email=email).first()
     if current_email is None:
         new_test_user = TestUser(email)
@@ -27,11 +40,14 @@ def create_user():
 
 @user.route('/prove_email', methods=['POST'])
 def prove_email():
-    data = json.loads(request.data)
-    email = data['email']
-    name = data['name']
-    key = data['key']
-    password = data['pass']
+    try:
+        data = json.loads(request.data)
+        email = data['email']
+        name = data['name']
+        key = data['key']
+        password = data['pass']
+    except:
+        return jsonify(result="Error")
     created_user = TestUser.query.filter_by(key=key).first()
     if created_user:
         if created_user.email == email:
@@ -54,9 +70,7 @@ def prove_email():
 
 @user.route('/delete', methods=['POST'])
 def delete_user():
-    data = json.loads(request.data)
-    user_token = data['token']
-    current_user = User.query.filter_by(token=user_token).first()
+    current_user = verif_user()
     if current_user:
         # deleting user's information
         page = current_user.info_page[0]
@@ -75,6 +89,8 @@ def delete_user():
             UserActivity.query.filter_by(id=day.id).delete()
         # deleting user
         name = current_user.name
+        data = json.loads(request.data)
+        user_token = data['token']
         User.query.filter_by(token=user_token).delete()
         db.session.commit()
         print('User ' + name + ' is deleted')
@@ -96,9 +112,12 @@ def login_user():
     if 'token' in session:
         return jsonify(result="Success")
     else:
-        data = json.loads(request.data)
-        email = data['email']
-        password = data['pass']
+        try:
+            data = json.loads(request.data)
+            email = data['email']
+            password = data['pass']
+        except:
+            return jsonify(result="Error")
         possible_user = User.query.filter_by(email=email).first()
         if possible_user:
             if possible_user.check_password(password):
@@ -122,9 +141,7 @@ def logout():
 
 @user.route('/get_page_info', methods=['POST'])
 def get_page_info():
-    data = json.loads(request.data)
-    token = data['token']
-    maybe_user = User.query.filter_by(token=token).first()
+    maybe_user = verif_user()
     if maybe_user:
         info = maybe_user.info_page
         photo = info[0].photo
@@ -140,8 +157,7 @@ def get_page_info():
 @user.route('/set_page_info', methods=['POST'])
 def set_page_info():
     data = json.loads(request.data)
-    token = data['token']
-    maybe_user = User.query.filter_by(token=token).first()
+    maybe_user = verif_user()
     if maybe_user:
         info = maybe_user.info_page
         info[0].photo = data['photo']
@@ -160,8 +176,7 @@ def set_page_info():
 def set_subjects():
     data = json.loads(request.data)
     codenames = data['codenames']
-    token = data['token']
-    maybe_user = User.query.filter_by(token=token).first()
+    maybe_user = verif_user()
     if maybe_user:
         for name in codenames:
             user_subject = UserSubjects(subject_codename=name, passed_lections=json.dumps([]),
@@ -176,9 +191,7 @@ def set_subjects():
 
 @user.route('/get_subjects', methods=['POST'])
 def get_subjects():
-    data = json.loads(request.data)
-    token = data['token']
-    maybe_user = User.query.filter_by(token=token).first()
+    maybe_user = verif_user()
     if maybe_user:
         subjects = maybe_user.info_subjects
         result = []
@@ -198,8 +211,7 @@ def get_subjects():
 def get_lections():
     data = json.loads(request.data)
     subject_code_name = data['subject_code_name']
-    token = data['token']
-    users_lections = User.query.filter_by(token=token).first()
+    users_lections = verif_user()
     true_subject = ''
     for subject in users_lections.info_subjects:
         if subject.subject_codename == subject_code_name:
@@ -239,10 +251,9 @@ def get_lections():
 @user.route('/set_view_lection', methods=['POST'])
 def set_view_lection():
     data = json.loads(request.data)
-    token = data['token']
     subject_code_name = data['subject_code_name']
     lection_id = data['lection_id']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     now_time = time.localtime()
     user_activities = now_user.activity
     real_activ = ''
@@ -278,9 +289,7 @@ def set_view_lection():
 
 @user.route('/get_progress', methods=['POST'])
 def get_progress():
-    data = json.loads(request.data)
-    token = data['token']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     if now_user:
         subjects = now_user.info_subjects
         if subjects:
@@ -306,9 +315,7 @@ def get_progress():
 
 @user.route('/get_activity', methods=['POST'])
 def get_activity():
-    data = json.loads(request.data)
-    token = data['token']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     now_time = time.localtime()
     now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
     final = []
@@ -339,9 +346,8 @@ def get_activity():
 @user.route('/change_design', methods=['POST'])
 def change_design():
     data = json.loads(request.data)
-    token = data['token']
     users_data = data['user_data']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     if now_user:
         user_settings = now_user.info_page[0]
         now_user.name = users_data['name']
@@ -357,9 +363,7 @@ def change_design():
 
 @user.route('/get_notifications', methods=['POST'])
 def get_notifications():
-    data = json.loads(request.data)
-    token = data['token']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     result = []
     if now_user:
         notifics = now_user.notifications
@@ -381,9 +385,7 @@ def get_notifications():
 
 @user.route('/get_last_lections', methods=['POST'])
 def get_last_lections():
-    data = json.loads(request.data)
-    token = data['token']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     if now_user:
         lections = now_user.info_page[0].last_lections
         return lections
@@ -394,9 +396,8 @@ def get_last_lections():
 @user.route('/get_lection', methods=['POST'])
 def get_lection():
     data = json.loads(request.data)
-    token = data['token']
     lection_id = data['lection_id']
-    now_user = User.query.filter_by(token=token).first()
+    now_user = verif_user()
     if now_user:
         last_lections = json.loads(now_user.info_page[0].last_lections)
         if lection_id not in last_lections:

@@ -21,11 +21,6 @@ class FacexemTestCase(unittest.TestCase):
         os.unlink(app.config['DATABASE'])
         self.app_context.pop()
 
-    def test_empty_db(self):
-        rv = self.app.post('/api/subject/get_info')
-        data = json.loads(rv.data)
-        assert 'yes' in data['result']
-
     def login(self, email, password):
         data = json.dumps({'email': email, 'pass': password})
         return self.app.post('/api/user/login',
@@ -48,22 +43,23 @@ class FacexemTestCase(unittest.TestCase):
         assert 'Error' in data['result']
 
     def test_create_and_delete_user(self):
-        rv = create_user.create_user(self, 'ledss@gmail.com', 'JesusChrist', '11111')
-        data = json.loads(rv.data)
-        assert 'Success' in data['result']
-        rv = set_page_info.set_page_info(self, '12', '23', ['111', '2222', '222'], '23')
-        data = json.loads(rv.data)
-        assert 'Success' in data['result']
-        rv = get_page_info.get_page_info(self, '12', '23', ['111', '2222', '222'], '23')
-        assert "Success" == rv
-        rv = set_subject.set_subject(self, ['math_pro'])
-        data = json.loads(rv.data)
-        assert 'Success' in data['result']
-        rv = get_lections.get_lections(self, 'math_pro', )
-        assert "Success" == rv
-        rv = delete_user.delete_user(self)
-        data = json.loads(rv.data)
-        assert 'Success' in data['result']
+        for i in range(10):
+            rv = create_user.create_user(self, 'ledss@gmail.com', 'JesusChrist', '11111')
+            data = json.loads(rv.data)
+            assert 'Success' in data['result']
+            rv = set_page_info.set_page_info(self, '12', '23', ['111', '2222', '222'], '23')
+            data = json.loads(rv.data)
+            assert 'Success' in data['result']
+            rv = get_page_info.get_page_info(self, '12', '23', ['111', '2222', '222'], '23')
+            assert "Success" == rv
+            rv = set_subject.set_subject(self, ['math_pro'])
+            data = json.loads(rv.data)
+            assert 'Success' in data['result']
+            rv = get_lections.get_lections(self, 'math_pro', )
+            assert "Success" == rv
+            rv = delete_user.delete_user(self)
+            data = json.loads(rv.data)
+            assert 'Success' in data['result']
 
 
 if __name__ == '__main__':
