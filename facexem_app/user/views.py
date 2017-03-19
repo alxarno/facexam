@@ -52,19 +52,6 @@ def prove_email():
         return jsonify(result="Bad key")
 
 
-@user.route('/delete_test', methods=['POST'])
-def delete_test():
-    data = json.loads(request.data)
-    test_id = data['id']
-    current_test = TestUser.query.filter_by(id=test_id).first()
-    if current_test:
-        TestUser.query.filter_by(id=test_id).delete()
-        db.session.commit()
-        return 'Test user with id = ' + test_id + ' deleted'
-    else:
-        return "Test user with id = " + test_id + " haven't"
-
-
 @user.route('/delete', methods=['POST'])
 def delete_user():
     data = json.loads(request.data)
@@ -94,20 +81,6 @@ def delete_user():
         return jsonify(result='Success')
     else:
         return jsonify(result="Error")
-
-
-@user.route('/get_all', methods=['POST'])
-def get_users():
-    users = User.query.all()
-    find = []
-    for person in users:
-        give = [{'id': person.id,
-                 'name': person.name,
-                 'email': person.email,
-                 'token': person.token,
-                 'role': person.role}]
-        find.append(give)
-    return jsonify(find)
 
 
 @user.route('/get_token', methods=['POST'])
@@ -258,9 +231,9 @@ def get_lections():
                 theme.append({'name': j.name, 'lections': lections_final})
             return jsonify(theme)
         else:
-            return jsonify(result='Error: this subject havent')
+            return jsonify(result='Error')
     else:
-        return jsonify(result='Error: user are havent this subject')
+        return jsonify(result='Error')
 
 
 @user.route('/set_view_lection', methods=['POST'])
@@ -446,10 +419,4 @@ def get_lection():
         return jsonify(result='Fail this token is havent')
 
 
-@user.route('/get_users_page', methods=['POST'])
-def get_users_pages():
-    users_pages = UserPage.query.all()
-    final = 0
-    for page in users_pages:
-        final += 1
-    return jsonify(result=final)
+

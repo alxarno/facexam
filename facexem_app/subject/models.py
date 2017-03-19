@@ -8,6 +8,7 @@ class Subject(db.Model):
     access = db.Column(db.Integer())
     codename = db.Column(db.String(64))
     themes = db.relationship('Theme', backref='subject')
+    tasks = db.relationship('Task', backref='subject')
 
 
 class Theme(db.Model):
@@ -26,3 +27,14 @@ class Lection(db.Model):
     type = db.Column(db.String(20))
     content = db.Column(db.String(10000))
     themes_id = db.Column(db.Integer(), db.ForeignKey('subjects_themes.id'))
+
+
+class Task(db.Model):
+    __tablename__ = "subjects_tasks"
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.Integer())
+    content = db.Column(db.String(1000))
+    answer = db.Column(db.String(64))
+    description = db.Column(db.String(2000))
+    subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+

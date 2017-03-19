@@ -45,3 +45,18 @@ def get_all_improved_email():
         return jsonify(result="Error")
 
 
+@admin.route('/get_all', methods=['POST'])
+def get_users():
+    if verif_admin():
+        users = User.query.all()
+        find = []
+        for person in users:
+            give = [{'id': person.id,
+                     'name': person.name,
+                     'email': person.email,
+                     'token': person.token,
+                     'role': person.role}]
+            find.append(give)
+        return jsonify(find)
+    else:
+        return jsonify(result="Error")
