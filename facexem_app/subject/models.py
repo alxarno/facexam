@@ -9,6 +9,7 @@ class Subject(db.Model):
     codename = db.Column(db.String(64))
     themes = db.relationship('Theme', backref='subject')
     tasks = db.relationship('Task', backref='subject')
+    achievements = db.relationship('Achievement', backref='subject')
 
 
 class Theme(db.Model):

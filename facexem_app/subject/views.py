@@ -7,6 +7,7 @@ from ..user.constans import ROLES
 
 subject = Blueprint('subject', __name__, url_prefix='/api/subject')
 
+
 def verif_author():
     try:
         data = json.loads(request.data)
