@@ -79,3 +79,17 @@ def get_task():
                             'description': task.description})
         else:
             return jsonify(result='Error')
+
+
+@admin.route('/smth', methods=['POST'])
+def smth():
+    if verif_admin():
+        data = json.loads(request.data)
+        token = data['token']
+        current_admin = User.query.filter_by(token=token).first()
+        current_admin.info_page[0].user_achievements = json.dumps({})
+        db.session.commit()
+        return jsonify(result="Success")
+    else:
+        return jsonify(result="Error")
+

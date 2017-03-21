@@ -8,6 +8,8 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
 from ..subject.models import Subject, Lection, Task
+from .somefuncs import reg_achievements_progress
+from ..achievements.models import Achievement
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
@@ -464,6 +466,7 @@ def check_task():
         task = Task.query.filter_by(id=task_id).first()
         if task.answer == answer:
             sent = True
+            reg_achievements_progress('task', user)
         else:
             sent = False
         return jsonify({'user_answer': answer, 'right': sent, 'description': task.description})
@@ -471,3 +474,24 @@ def check_task():
         return jsonify(result="Error")
 
 
+@user.route('/get_achievements', methods=['POST'])
+def get_achievs():
+    user = verif_user()
+    if user:
+        user_achievs = json.loads(user.info_page[0].user_achievements)
+        achievements = Achievement.query.all()
+        final = []
+        for ach in achievements:
+            now = {'name': ach.name,
+                   'content': ach.content,
+                   'max': ach.max}
+            try:
+                now['now'] = user_achievs[str(ach.id)]['now']
+            except:
+                now['now'] = 0
+            # if ach.id in user_achievs:
+            #     now.now = user_achievs[ach.id].now
+            final.append(now)
+        return jsonify(final)
+    else:
+        return jsonify(result="Error")

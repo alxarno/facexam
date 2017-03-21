@@ -99,6 +99,7 @@ class UserPage(db.Model):
     about = db.Column(db.String(256), nullable=False)
     last_lections = db.Column(db.String(64))
     user_active_achivs = db.Column(db.String(256))
+    user_achievements = db.Column(db.String(1500))
     user_active_background = db.Column(db.String(20))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
