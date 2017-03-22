@@ -205,6 +205,14 @@ def get_subjects():
                        'points': s.points_of_tests,
                        'experience': s.experience}
             result.append(subject)
+        for i in range(len(result)-1, -1, -1):
+            j=0
+            while j < i:
+                if result[j]['experience'] > result[j+1]['experience']:
+                    smth = result[j].copy()
+                    result[j] = result[j+1]
+                    result[j+1] = smth
+                j += 1
         return jsonify(result)
     else:
         return jsonify(result='Fail this token is havent')
@@ -274,9 +282,11 @@ def set_view_lection():
                     passed_lections.append(lection_id)
                     somefuncs.set_activity_user(user_activities, now_user)
                     somefuncs.reg_achievements_progress('lection', now_user)
+                    now_user.info_page[0].lections += 1
             else:
                 passed_lections = [lection_id]
             true_subject.passed_lections = json.dumps(passed_lections)
+            db.session.commit()
             return jsonify(result="Success")
         else:
             return jsonify(result="Error")
@@ -485,5 +495,18 @@ def get_achieves():
                 now['now'] = 0
             final.append(now)
         return jsonify(final)
+    else:
+        return jsonify(result="Error")
+
+
+@user.route('/get_global_static', methods=['POST'])
+def global_static():
+    now_user = verif_user()
+    if now_user:
+        info = now_user.info_page[0]
+        result = {'lections': info.lections,
+                  'tasks': info.tasks,
+                  'tests': info.tests}
+        return jsonify(result)
     else:
         return jsonify(result="Error")

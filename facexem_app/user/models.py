@@ -97,10 +97,13 @@ class UserPage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     photo = db.Column(db.String(64), nullable=False)
     about = db.Column(db.String(256), nullable=False)
-    last_lections = db.Column(db.String(64))
-    user_active_achivs = db.Column(db.String(256))
-    user_achievements = db.Column(db.String(1500))
-    user_active_background = db.Column(db.String(20))
+    lections = db.Column(db.Integer(), default=0)
+    tasks = db.Column(db.Integer(), default=0)
+    tests = db.Column(db.Integer(), default=0)
+    last_lections = db.Column(db.String(64), default=u'')
+    user_active_achivs = db.Column(db.String(256), default=u'')
+    user_achievements = db.Column(db.String(1500), default=u'')
+    user_active_background = db.Column(db.String(20), default=u'')
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def set_photo(self, photo):
@@ -123,10 +126,10 @@ class UserSubjects(db.Model):
     __tablename__ = "user_subjects"
     id = db.Column(db.Integer, primary_key=True)
     subject_codename = db.Column(db.String(64))
-    passed_lections = db.Column(db.String(512))
-    passed_tests = db.Column(db.String(512))
-    points_of_tests = db.Column(db.Integer)
-    experience = db.Column(db.Integer)
+    passed_lections = db.Column(db.String(512), default=u'')
+    passed_tests = db.Column(db.String(512), default=u'')
+    points_of_tests = db.Column(db.Integer, default=0)
+    experience = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
@@ -137,7 +140,7 @@ class UserActivity(db.Model):
     __tablename__ = "user_activity"
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
-    lections = db.Column(db.Integer)
+    lections = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
