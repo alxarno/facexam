@@ -1,11 +1,12 @@
 import json
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 
 from ..user.models import User, TestUser
 from ..user.constans import ROLES
 from ..subject.models import Task
 from ..extensions import db
+from config import ADMIN_KEY, AUTHOR_KEY
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -16,7 +17,20 @@ def verif_admin():
     current_admin = User.query.filter_by(token=token).first()
     if current_admin:
         if current_admin.role == ROLES['ADMIN']:
-            return True
+            if 'token' in session:
+                if session['token'] == token:
+                    return True
+                else:
+                    return False
+            else:
+                try:
+                    user_code = data['code']
+                except:
+                    return False
+                if user_code == ADMIN_KEY:
+                    return True
+                else:
+                    return False
         else:
             return False
     else:

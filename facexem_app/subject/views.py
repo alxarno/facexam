@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from ..extensions import db
 import json
 from .models import Subject, Lection, Theme, Task
 from ..user.models import User
 from ..user.constans import ROLES
+from config import ADMIN_KEY, AUTHOR_KEY
 
 subject = Blueprint('subject', __name__, url_prefix='/api/subject')
 
@@ -14,8 +15,21 @@ def verif_author():
         token = data['token']
         current_admin = User.query.filter_by(token=token).first()
         if current_admin:
-            if (current_admin.role == ROLES['ADMIN']) or (current_admin.role == ROLES['AUTHOR']) :
-                return True
+            if (current_admin.role == ROLES['ADMIN']) or (current_admin.role == ROLES['AUTHOR']):
+                if 'token' in session:
+                    if session['token'] == token:
+                        return True
+                    else:
+                        return False
+                else:
+                    try:
+                        user_code = data['code']
+                    except:
+                        return False
+                    if (user_code == ADMIN_KEY) or (user_code == AUTHOR_KEY):
+                        return True
+                    else:
+                        return False
             else:
                 return False
         else:

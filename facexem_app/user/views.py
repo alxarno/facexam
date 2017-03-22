@@ -8,7 +8,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
 from ..subject.models import Subject, Lection, Task
-from .somefuncs import reg_achievements_progress
+from .methods import somefuncs
 from ..achievements.models import Achievement
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
@@ -254,40 +254,34 @@ def get_lections():
 @user.route('/set_view_lection', methods=['POST'])
 def set_view_lection():
     data = json.loads(request.data)
-    subject_code_name = data['subject_code_name']
-    lection_id = data['lection_id']
     now_user = verif_user()
-    now_time = time.localtime()
-    user_activities = now_user.activity
-    real_activ = ''
-    if user_activities:
-        for activ in user_activities:
-            if activ.date == datetime.time(now_time.tm_year, now_time.tm_mon, now_time.tm_mday):
-                real_activ = activ
-    if real_activ == '':
-        real_activ = UserActivity(date=datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday),
-                                  lections=0, user=now_user)
-        db.session.add(real_activ)
-        db.session.commit()
-    true_subject = ''
-    for subject in now_user.info_subjects:
-        if subject.subject_codename == subject_code_name:
-            true_subject = subject
     if now_user:
+        try:
+            subject_code_name = data['subject_codename']
+            lection_id = str(data['lection_id'])
+        except:
+            return jsonify(result="Error")
+        user_activities = now_user.activity
+        true_subject = ''
+        # prove that user have subject of lection or smth
+        for subject in now_user.info_subjects:
+            if subject.subject_codename == subject_code_name:
+                true_subject = subject
         if true_subject != '':
             if true_subject.passed_lections != '':
                 passed_lections = json.loads(true_subject.passed_lections)
+                if lection_id not in passed_lections:
+                    passed_lections.append(lection_id)
+                    somefuncs.set_activity_user(user_activities, now_user)
+                    somefuncs.reg_achievements_progress('lection', now_user)
             else:
-                passed_lections = []
-            real_activ.lections += 1
-            passed_lections.append(lection_id)
+                passed_lections = [lection_id]
             true_subject.passed_lections = json.dumps(passed_lections)
-            db.session.commit()
             return jsonify(result="Success")
         else:
-            return jsonify(result='Error: user are havent this subject')
+            return jsonify(result="Error")
     else:
-        return jsonify(result='Fail this token is havent')
+        return jsonify(result='Error')
 
 
 @user.route('/get_progress', methods=['POST'])
@@ -475,7 +469,7 @@ def check_task():
 
 
 @user.route('/get_achievements', methods=['POST'])
-def get_achievs():
+def get_achieves():
     user = verif_user()
     if user:
         user_achievs = json.loads(user.info_page[0].user_achievements)
@@ -489,8 +483,6 @@ def get_achievs():
                 now['now'] = user_achievs[str(ach.id)]['now']
             except:
                 now['now'] = 0
-            # if ach.id in user_achievs:
-            #     now.now = user_achievs[ach.id].now
             final.append(now)
         return jsonify(final)
     else:
