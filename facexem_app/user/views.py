@@ -510,3 +510,41 @@ def global_static():
         return jsonify(result)
     else:
         return jsonify(result="Error")
+
+
+@user.route('/get_test', methods=['POST'])
+def get_test():
+    now_user = verif_user()
+    if now_user:
+        data = json.loads(request.data)
+        test = []
+        try:
+            info_counts = data['counts']
+            subject = data['subject_codename']
+        except:
+            return jsonify(result="Error: havent counts or subject_codename")
+        subject = Subject.query.filter_by(codename=subject).first()
+        if subject:
+            for count in info_counts:
+                now_count_tasks = int(info_counts[count]['count'])
+                tasks_id = []
+                limit = 0
+                for g in range(0, now_count_tasks):
+                    task_count = int(Task.query.filter_by(subject_id=subject.id).count())
+                    random1 = random.random()
+                    random_id_task = round(task_count*random1)
+                    if random_id_task not in tasks_id:
+                        rt = Task.query.filter_by(id=random_id_task, number=count, subject_id=subject.id).first()
+                        if rt:
+                            tasks_id.append(random_id_task)
+                            test.append({"id": rt.id, "content": rt.content})
+                    else:
+                        if limit <= 3:
+                            now_count_tasks += 1
+                            limit += 1
+            return jsonify(test)
+        else:
+            return jsonify(result="Error: bad subject_codename")
+    else:
+        return jsonify(result="Error")
+

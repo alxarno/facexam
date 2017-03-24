@@ -84,7 +84,7 @@ def get_task():
         try:
             task_id = data['task_id']
         except:
-            return jsonify(result='Error')
+            return jsonify(result='Error: need task_id')
         task = Task.query.filter_by(id=task_id).first()
         if task:
             return jsonify({'id': task.id,
@@ -92,7 +92,7 @@ def get_task():
                             'answer': task.answer,
                             'description': task.description})
         else:
-            return jsonify(result='Error')
+            return jsonify(result='Error: you are not admin ')
 
 
 @admin.route('/smth', methods=['POST'])
