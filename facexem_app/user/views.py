@@ -468,9 +468,18 @@ def check_task():
         return jsonify(result='Error')
     if user:
         task = Task.query.filter_by(id=task_id).first()
-        if task.answer == answer:
+        user_activities = user.activity
+        real_answer = json.loads(task.answer)
+        count_answers = len(real_answer)
+        right = 0
+        for i in range(0, count_answers):
+                if real_answer[i] == answer[i]:
+                    right += 1
+
+        if right > 0:
             sent = True
-            reg_achievements_progress('task', user)
+            somefuncs.set_activity_user(user_activities, user, 'task')
+            somefuncs.reg_achievements_progress('task', user)
         else:
             sent = False
         return jsonify({'user_answer': answer, 'right': sent, 'description': task.description})

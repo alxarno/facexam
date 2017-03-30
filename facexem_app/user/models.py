@@ -141,6 +141,7 @@ class UserActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     lections = db.Column(db.Integer, default=0)
+    tasks = db.Column(db.Integer(), default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):

@@ -30,7 +30,7 @@ def reg_achievements_progress(type, user):
     return True
 
 
-def set_activity_user(user_activities, now_user):
+def set_activity_user(user_activities, now_user, type):
     now_time = time.localtime()
     real_activ = ''
     for activ in user_activities:
@@ -41,8 +41,9 @@ def set_activity_user(user_activities, now_user):
     if real_activ == '':
         real_activ = UserActivity(date=datetime.date(now_time.tm_year,
                                   now_time.tm_mon, now_time.tm_mday),
-                                  lections=0, user=now_user)
+                                  lections=0, user=now_user, tasks=0)
         db.session.add(real_activ)
         db.session.commit()
-    real_activ.lections += 1
+    if type == 'task':
+        real_activ.tasks += 1
     return True

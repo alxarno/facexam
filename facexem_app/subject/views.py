@@ -172,7 +172,7 @@ def delete_lection():
             return jsonify(result='Error')
         u = Lection.query.filter_by(id=lection_id).first()
         if u:
-            u.delete()
+            db.session.delete(u)
             db.session.commit()
             return jsonify(result='Success')
         else:
@@ -214,7 +214,7 @@ def create_task():
             return jsonify(result='Error')
         current_subject = Subject.query.filter_by(codename=subject_codename).first()
         if current_subject:
-            task = Task(number=task_number, content=json.dumps(content), answer=answer,\
+            task = Task(number=task_number, content=json.dumps(content), answer=json.dumps(answer),\
                         description=json.dumps(description), subject=current_subject)
             db.session.add(task)
             db.session.commit()
@@ -223,3 +223,23 @@ def create_task():
             return jsonify(result="Error")
     else:
         return jsonify(result='Error')
+
+
+@subject.route('/delete_task', methods=['POST'])
+def delete_task():
+    if verif_author():
+        try:
+            data = json.loads(request.data)
+            task_id = data['task_id']
+        except:
+            return jsonify(result='Error')
+        u = Task.query.filter_by(id=task_id).first()
+        if u:
+            db.session.delete(u)
+            db.session.commit()
+            return jsonify(result='Success')
+        else:
+            return jsonify(result='Error: this task havent')
+    else:
+        return jsonify(result='Error')
+
