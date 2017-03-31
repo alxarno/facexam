@@ -5,6 +5,7 @@ class Subject(db.Model):
     __tablename__ = "subjects"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False)
+    system_points = db.Column(db.String(256))
     access = db.Column(db.Integer())
     codename = db.Column(db.String(64))
     themes = db.relationship('Theme', backref='subject')

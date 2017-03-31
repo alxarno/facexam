@@ -400,31 +400,31 @@ def get_last_lections():
         return jsonify(result='Fail this token is havent')
 
 
-@user.route('/get_lection', methods=['POST'])
-def get_lection():
-    data = json.loads(request.data)
-    lection_id = data['lection_id']
-    now_user = verif_user()
-    if now_user:
-        last_lections = json.loads(now_user.info_page[0].last_lections)
-        if lection_id not in last_lections:
-            result_last_lections = [lection_id]
-            for i in range(6):
-                if len(last_lections) > i:
-                    result_last_lections.append(last_lections[i])
-                else:
-                    break
-            now_user.info_page[0].last_lections = json.dumps(result_last_lections)
-            db.session.commit()
-        lection = Lection.query.get(lection_id)
-        if lection:
-            result = {'name': lection.name,
-                      'content': json.loads(lection.content)}
-            return jsonify(result=result)
-        else:
-            return jsonify(result='Fail this lection is havent')
-    else:
-        return jsonify(result='Fail this token is havent')
+# @user.route('/get_lection', methods=['POST'])
+# def get_lection():
+#     data = json.loads(request.data)
+#     lection_id = data['lection_id']
+#     now_user = verif_user()
+#     if now_user:
+#         last_lections = json.loads(now_user.info_page[0].last_lections)
+#         if lection_id not in last_lections:
+#             result_last_lections = [lection_id]
+#             for i in range(6):
+#                 if len(last_lections) > i:
+#                     result_last_lections.append(last_lections[i])
+#                 else:
+#                     break
+#             now_user.info_page[0].last_lections = json.dumps(result_last_lections)
+#             db.session.commit()
+#         lection = Lection.query.get(lection_id)
+#         if lection:
+#             result = {'name': lection.name,
+#                       'content': json.loads(lection.content)}
+#             return jsonify(result=result)
+#         else:
+#             return jsonify(result='Fail this lection is havent')
+#     else:
+#         return jsonify(result='Fail this token is havent')
 
 
 @user.route('/get_task', methods=['POST'])
@@ -557,3 +557,49 @@ def get_test():
     else:
         return jsonify(result="Error")
 
+
+@user.route('/check_test', methods=['POST'])
+def check_test():
+    now_user = verif_user()
+    points = 0
+    if now_user:
+        data = json.loads(request.data)
+        try:
+            answers = data['answers']
+            type = data['type']
+            subject_codename = data['subject_code']
+        except:
+            return jsonify(result="Error")
+        for i in answers:
+            now_id = i.id
+            type = i.type
+            answer = i.answer
+            task = Task.query.filter_by(id=now_id).first()
+            try:
+                real_answer = json.loads(task.answer)
+            except:
+                return jsonify(result="Error")
+            if task:
+                if type == 'hard':
+                    for j in range(0, len(answer)-1):
+                        if answer[j] == real_answer[j]:
+                            points += 1
+                else:
+                    if answer[0] == real_answer[0]:
+                        points += 1
+        if type == 'usual':
+            subject = UserSubjects.query.filter_by(subject_codename=subject_codename).first()
+            real_subject = Subject.query.filter_by(codename=subject_codename).first()
+            if subject and real_subject:
+                tests = json.loads(subject.passed_tests)
+                tests[len(tests)-1] = 0
+                for i in range(1, len(tests)-1, -1):
+                    tests[i] = tests[i-1]
+                system_points = json.loads(real_subject.system_points)
+                points_100 = system_points[str(points)]
+                tests[0] = points_100
+                subject.points_of_tests = tests
+                db.session.dommit()
+        return jsonify(result=points)
+    else:
+        return jsonify(result='Error')
