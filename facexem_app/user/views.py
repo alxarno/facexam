@@ -147,11 +147,26 @@ def get_page_info():
     maybe_user = verif_user()
     if maybe_user:
         info = maybe_user.info_page
+        name = maybe_user.name
+        city = info[0].city
+        exp = info[0].experience
         photo = info[0].photo
         about = info[0].about
-        achivs = json.loads(info[0].user_active_achivs)
         background = info[0].user_active_background
-        finish = [{'photo': photo, 'about': about, 'achivs': achivs, 'background': background}]
+        if maybe_user.role == 3:
+            roots = 'admin'
+        elif maybe_user == 2:
+            roots = 'author'
+        else:
+            roots = 'user'
+        finish = [{'photo': photo,
+                   'about': about,
+                   'background': background,
+                   'name': name,
+                   'city': city,
+                   'exp': exp,
+                   'roots': roots,
+                   'streack': 5}]
         return jsonify(finish)
     else:
         return jsonify(result='Error')
@@ -620,7 +635,7 @@ def get_challenge():
                 subject = i
         if subject:
             try:
-                challenge = json.loads(subject.now_chellenge)
+                challenge = json.loads(subject.now_challenge)
             except:
                 challenge = somefuncs.add_challenge(now_user, subject)
             if challenge:

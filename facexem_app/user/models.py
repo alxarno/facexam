@@ -97,6 +97,8 @@ class UserPage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     photo = db.Column(db.String(64), nullable=False)
     about = db.Column(db.String(256), nullable=False)
+    city = db.Column(db.String(64))
+    experience = db.Column(db.Integer())
     lections = db.Column(db.Integer(), default=0)
     tasks = db.Column(db.Integer(), default=0)
     tests = db.Column(db.Integer(), default=0)
@@ -131,8 +133,8 @@ class UserSubjects(db.Model):
     points_of_tests = db.Column(db.Integer, default=0)
     experience = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
-    now_chellenge = db.Column(db.String(128))
-    # now_chellenge struct - [id, now result, close?]
+    now_challenge = db.Column(db.String(128))
+    # now_challenge struct - [id, now result, close?]
 
 
     def __repr__(self):

@@ -28,6 +28,14 @@ def login():
         return app.send_static_file('enter/index.html')
 
 
+@app.route('/')
+def main():
+    if 'token' in session:
+        return app.send_static_file('user/index.html')
+    else:
+        return app.send_static_file('enter/index.html')
+
+
 @app.errorhandler(405)
 def page_not_found(error):
     return request.method + " isn't our method", 405
