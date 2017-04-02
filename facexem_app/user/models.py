@@ -131,6 +131,9 @@ class UserSubjects(db.Model):
     points_of_tests = db.Column(db.Integer, default=0)
     experience = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    now_chellenge = db.Column(db.String(128))
+    # now_chellenge struct - [id, now result, close?]
+
 
     def __repr__(self):
         return '<UserSubjects %r>' % self.user_id

@@ -11,6 +11,7 @@ class Subject(db.Model):
     themes = db.relationship('Theme', backref='subject')
     tasks = db.relationship('Task', backref='subject')
     achievements = db.relationship('Achievement', backref='subject')
+    challenges = db.relationship('Challenge', backref='subject')
 
 
 class Theme(db.Model):
@@ -40,3 +41,14 @@ class Task(db.Model):
     description = db.Column(db.String(2000))
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
 
+
+class Challenge(db.Model):
+    __tablename__ = "challenges"
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(128))
+    type = db.Column(db.String(10))
+    max = db.Column(db.Integer())
+    prize = db.Column(db.Integer())
+    condition = db.Column(db.String(20))
+    level_hard = db.Column(db.Integer())
+    subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))

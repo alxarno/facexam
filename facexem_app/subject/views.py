@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, session
 from ..extensions import db
 import json
-from .models import Subject, Lection, Theme, Task
+from .models import Subject, Lection, Theme, Task, Challenge
 from ..user.models import User
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
@@ -186,7 +186,7 @@ def get_tasks():
     if verif_author():
         try:
             data = json.loads(request.data)
-            subject_code_name = data['subject_code_name']
+            subject_code_name = data['subject_codename']
         except:
             return jsonify(result="Error")
         current_subject = Subject.query.filter_by(codename=subject_code_name).first()
@@ -205,7 +205,7 @@ def create_task():
     if verif_author():
         try:
             data = json.loads(request.data)
-            subject_codename = data['subject_code_name']
+            subject_codename = data['subject_codename']
             task_number = data['task_number']
             content = data['content']
             answer = data['answer']
@@ -243,3 +243,29 @@ def delete_task():
     else:
         return jsonify(result='Error')
 
+
+@subject.route('/create_challenge', methods=['POST'])
+def create_challenge():
+    if verif_author():
+        data = json.loads(request.data)
+        try:
+            subject_codename = data['subject_codename']
+            type = data['type']
+            condition = data['condition']
+            hard = data['hard']
+            prize = data['prize']
+            max = data['max']
+            content = data['content']
+        except:
+            return jsonify(result='Error')
+        subject = Subject.query.filter_by(codename=subject_codename).first()
+        if subject:
+            challenge = Challenge(content=content, type=type, max=max, prize=prize, level_hard=hard, \
+                                  condition=json.dumps(condition), subject=subject)
+            db.session.add(challenge)
+            db.session.commit()
+            return jsonify(result='Success')
+        else:
+            return jsonify(result='Error')
+    else:
+        return jsonify(result='Error')

@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify, session
 
 from ..user.models import User, TestUser
 from ..user.constans import ROLES
-from ..subject.models import Task
+from ..subject.models import Task, Subject
 from ..extensions import db
 from config import ADMIN_KEY, AUTHOR_KEY
 
@@ -106,4 +106,3 @@ def smth():
         return jsonify(result="Success")
     else:
         return jsonify(result="Error")
-

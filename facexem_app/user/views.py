@@ -7,7 +7,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
-from ..subject.models import Subject, Lection, Task
+from ..subject.models import Subject, Lection, Task, Challenge
 from .methods import somefuncs
 from ..achievements.models import Achievement
 
@@ -217,81 +217,81 @@ def get_subjects():
     else:
         return jsonify(result='Fail this token is havent')
 
+#
+# @user.route('/get_lections', methods=['POST'])
+# def get_lections():
+#     data = json.loads(request.data)
+#     subject_code_name = data['subject_code_name']
+#     users_lections = verif_user()
+#     true_subject = ''
+#     for subject in users_lections.info_subjects:
+#         if subject.subject_codename == subject_code_name:
+#             true_subject = subject
+#     if true_subject != '':
+#         if true_subject.passed_lections != '':
+#             users_lections = json.loads(true_subject.passed_lections)
+#         else:
+#             users_lections = []
+#         current_subject = Subject.query.filter_by(codename=subject_code_name).first()
+#         if current_subject:
+#             themes = current_subject.themes
+#             theme = []
+#             number_theme = 1
+#             for j in themes:
+#                 lections = j.lections
+#                 lections_final = []
+#                 number = 0
+#                 for k in lections:
+#                     if str(k.id) in users_lections:
+#                         lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
+#                                    'number': number, 'type': k.type, 'theme': number_theme, 'done': True}
+#                     else:
+#                         lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
+#                                    'number': number, 'type': k.type, 'theme': number_theme}
+#                     number += 1
+#                     lections_final.append(lection)
+#                 number_theme += 1
+#                 theme.append({'name': j.name, 'lections': lections_final})
+#             return jsonify(theme)
+#         else:
+#             return jsonify(result='Error')
+#     else:
+#         return jsonify(result='Error')
 
-@user.route('/get_lections', methods=['POST'])
-def get_lections():
-    data = json.loads(request.data)
-    subject_code_name = data['subject_code_name']
-    users_lections = verif_user()
-    true_subject = ''
-    for subject in users_lections.info_subjects:
-        if subject.subject_codename == subject_code_name:
-            true_subject = subject
-    if true_subject != '':
-        if true_subject.passed_lections != '':
-            users_lections = json.loads(true_subject.passed_lections)
-        else:
-            users_lections = []
-        current_subject = Subject.query.filter_by(codename=subject_code_name).first()
-        if current_subject:
-            themes = current_subject.themes
-            theme = []
-            number_theme = 1
-            for j in themes:
-                lections = j.lections
-                lections_final = []
-                number = 0
-                for k in lections:
-                    if str(k.id) in users_lections:
-                        lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
-                                   'number': number, 'type': k.type, 'theme': number_theme, 'done': True}
-                    else:
-                        lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
-                                   'number': number, 'type': k.type, 'theme': number_theme}
-                    number += 1
-                    lections_final.append(lection)
-                number_theme += 1
-                theme.append({'name': j.name, 'lections': lections_final})
-            return jsonify(theme)
-        else:
-            return jsonify(result='Error')
-    else:
-        return jsonify(result='Error')
-
-
-@user.route('/set_view_lection', methods=['POST'])
-def set_view_lection():
-    data = json.loads(request.data)
-    now_user = verif_user()
-    if now_user:
-        try:
-            subject_code_name = data['subject_codename']
-            lection_id = str(data['lection_id'])
-        except:
-            return jsonify(result="Error")
-        user_activities = now_user.activity
-        true_subject = ''
-        # prove that user have subject of lection or smth
-        for subject in now_user.info_subjects:
-            if subject.subject_codename == subject_code_name:
-                true_subject = subject
-        if true_subject != '':
-            if true_subject.passed_lections != '':
-                passed_lections = json.loads(true_subject.passed_lections)
-                if lection_id not in passed_lections:
-                    passed_lections.append(lection_id)
-                    somefuncs.set_activity_user(user_activities, now_user)
-                    somefuncs.reg_achievements_progress('lection', now_user)
-                    now_user.info_page[0].lections += 1
-            else:
-                passed_lections = [lection_id]
-            true_subject.passed_lections = json.dumps(passed_lections)
-            db.session.commit()
-            return jsonify(result="Success")
-        else:
-            return jsonify(result="Error")
-    else:
-        return jsonify(result='Error')
+#
+# @user.route('/set_view_lection', methods=['POST'])
+# def set_view_lection():
+#     data = json.loads(request.data)
+#     now_user = verif_user()
+#     if now_user:
+#         try:
+#             subject_code_name = data['subject_codename']
+#             lection_id = str(data['lection_id'])
+#         except:
+#             return jsonify(result="Error")
+#         user_activities = now_user.activity
+#         true_subject = ''
+#         # prove that user have subject of lection or smth
+#         for subject in now_user.info_subjects:
+#             if subject.subject_codename == subject_code_name:
+#                 true_subject = subject
+#         if true_subject != '':
+#             if true_subject.passed_lections != '':
+#                 passed_lections = json.loads(true_subject.passed_lections)
+#                 if lection_id not in passed_lections:
+#                     passed_lections.append(lection_id)
+#                     somefuncs.set_activity_user(user_activities, now_user)
+#                     somefuncs.reg_achievements_progress('lection', now_user)
+#                     now_user.info_page[0].lections += 1
+#             else:
+#                 passed_lections = [lection_id]
+#             true_subject.passed_lections = json.dumps(passed_lections)
+#             db.session.commit()
+#             return jsonify(result="Success")
+#         else:
+#             return jsonify(result="Error")
+#     else:
+#         return jsonify(result='Error')
 
 
 @user.route('/get_progress', methods=['POST'])
@@ -601,5 +601,44 @@ def check_test():
                 subject.points_of_tests = tests
                 db.session.dommit()
         return jsonify(result=points)
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/get_challenge', methods=['POST'])
+def get_challenge():
+    now_user = verif_user()
+    if now_user:
+        data = json.loads(request.data)
+        try:
+            subject_codename = data['subject_codename']
+        except:
+            return jsonify(result='Error')
+        subject = False
+        for i in now_user.info_subjects:
+            if i.subject_codename == subject_codename:
+                subject = i
+        if subject:
+            try:
+                challenge = json.loads(subject.now_chellenge)
+            except:
+                challenge = somefuncs.add_challenge(now_user, subject)
+            if challenge:
+                real_challenge = Challenge.query.filter_by(id=challenge[0]).first()
+                if real_challenge:
+                    content = real_challenge.content
+                    now = challenge[1]
+                    max = real_challenge.max
+                    prize = real_challenge.prize
+                    return jsonify({'content': content,
+                                    'now': now,
+                                    'max': max,
+                                    'prize': prize})
+                else:
+                    return jsonify(result='Error')
+            else:
+                return jsonify(result='Error')
+        else:
+            return jsonify(result="Error")
     else:
         return jsonify(result='Error')

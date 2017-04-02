@@ -1,4 +1,5 @@
 from ...achievements.models import Achievement
+from ...subject.models import Subject, Challenge
 from ..models import UserActivity
 from ...extensions import db
 import json
@@ -47,3 +48,27 @@ def set_activity_user(user_activities, now_user, type):
     if type == 'task':
         real_activ.tasks += 1
     return True
+
+
+def get_random(array, condition):
+    final = 0
+    for i in range(0, len(array)-1):
+        if int(array[i].level_hard) == condition:
+            return i
+    return final
+
+
+def add_challenge(now_user, subject):
+    real_subject = Subject.query.filter_by(codename=subject.subject_codename).first()
+    if real_subject:
+        challenges = Challenge.query.filter_by(subject_id=real_subject.id).all()
+        try:
+            user_level = round(int(subject.points_of_tests)/33)
+        except:
+            user_level = 0
+        user_challenge = challenges[get_random(challenges, user_level)]
+        subject.now_challenge = [user_challenge.id, 0, 0]
+        db.session.commit()
+        return [user_challenge.id, 0, 0]
+    else:
+        return False
