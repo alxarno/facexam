@@ -175,15 +175,30 @@ def get_page_info():
 @user.route('/set_page_info', methods=['POST'])
 def set_page_info():
     data = json.loads(request.data)
+
     maybe_user = verif_user()
     if maybe_user:
         info = maybe_user.info_page
-        info[0].photo = data['photo']
-        info[0].about = data['about']
-        achivs = json.dumps(data['achivs'])
-        backgrs = data['background']
-        info[0].user_active_achivs = achivs
-        info[0].user_active_background = backgrs
+        try:
+            photo = data['photo']
+            info[0].photo = photo
+        except:
+            photo = 0
+        try:
+            about = data['about']
+            info[0].about = about
+        except:
+            about = 0
+        try:
+            achivs = json.dumps(data['achivs'])
+            info[0].user_active_achivs = achivs
+        except:
+            achivs = 0
+        try:
+            backgrs = data['background']
+            info[0].user_active_background = backgrs
+        except:
+            backgrs = 0
         db.session.commit()
         return jsonify(result="Success")
     else:
@@ -214,20 +229,25 @@ def get_subjects():
         subjects = maybe_user.info_subjects
         result = []
         for s in subjects:
-            subject = {'codename': s.subject_codename,
-                       'lections': s.passed_lections,
-                       'tests': s.passed_tests,
-                       'points': s.points_of_tests,
-                       'experience': s.experience}
-            result.append(subject)
-        for i in range(len(result)-1, -1, -1):
-            j=0
-            while j < i:
-                if result[j]['experience'] > result[j+1]['experience']:
-                    smth = result[j].copy()
-                    result[j] = result[j+1]
-                    result[j+1] = smth
-                j += 1
+            real_subject = Subject.query.filter_by(codename=s.subject_codename).first()
+            if real_subject:
+                subjectCount = s.points_of_tests
+                if subjectCount == '':
+                    subjectCount = 0
+                subject = {'link': s.subject_codename,
+                           'subjectName': real_subject.name,
+                           'image': 'subject_pic/'+s.subject_codename,
+                           'subjectCount': subjectCount,
+                           'subjectAll': 100}
+                result.append(subject)
+        # for i in range(len(result)-1, -1, -1):
+        #     j = 0
+        #     while j < i:
+        #         if result[j]['experience'] > result[j+1]['experience']:
+        #             smth = result[j].copy()
+        #             result[j] = result[j+1]
+        #             result[j+1] = smth
+        #         j += 1
         return jsonify(result)
     else:
         return jsonify(result='Fail this token is havent')
@@ -353,6 +373,7 @@ def get_activity():
         # test, is day of activity in last 7 days
         for day in user_activities:
             if str(day.date) in dates:
+                print(day.date)
                 final.append(day.lections)
         if len(final) < 7:
             times = len(final)
@@ -360,6 +381,17 @@ def get_activity():
                 final.append(0)
                 times += 1
         final = list(reversed(final))
+        k = 0
+        for date in dates:
+            dayDate = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+            day = str(dayDate.strftime("%d"))
+            month = int(dayDate.strftime("%m"))
+            months = ['Января', 'Февраля', "Марта", "Апреля", "Мая", "Июня", "Июля", "Августа",
+                      "Сентября", "Ноября", "Декабря"]
+            month = months[month-1]
+            date = str(day+" "+month)
+            dates[k] = date
+            k += 1
         return jsonify(final, dates)
     else:
         return jsonify(result='Fail this token is havent')
@@ -655,5 +687,24 @@ def get_challenge():
                 return jsonify(result='Error')
         else:
             return jsonify(result="Error")
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/get_preference', methods=['POST'])
+def get_preference():
+    user = verif_user()
+    if user != 0:
+        names = []
+        values = []
+        user_subjects = user.info_subjects
+        for sub in user_subjects:
+            subject = Subject.query.filter_by(codename=sub.subject_codename).first()
+            names.append(subject.name)
+            try:
+                values.append(int(sub.tasks)*(int(sub.points_of_tests)/100))
+            except:
+                values.append(0)
+        return jsonify(values, names)
     else:
         return jsonify(result='Error')

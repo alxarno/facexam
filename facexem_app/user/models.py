@@ -131,6 +131,7 @@ class UserSubjects(db.Model):
     passed_lections = db.Column(db.String(512), default=u'')
     passed_tests = db.Column(db.String(512), default=u'')
     points_of_tests = db.Column(db.Integer, default=0)
+    tasks = db.Column(db.Integer, default=0)
     experience = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     now_challenge = db.Column(db.String(128))

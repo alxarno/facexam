@@ -28,6 +28,37 @@ def login():
         return app.send_static_file('enter/index.html')
 
 
+@app.route('/bg/<smth>')
+def backgrounds(smth):
+    return app.send_static_file('other/backgrounds/'+smth+'.jpg')
+
+
+@app.route('/icon/<smth>')
+def icons(smth):
+    return app.send_static_file('other/icons&pictures/'+smth+'.svg')
+
+
+@app.route('/subject_pic/<smth>')
+def subject_pic(smth):
+    return app.send_static_file('other/subjects_pic/'+smth+'.png')
+
+
+@app.route('/front/css')
+def get_styles():
+    return app.send_static_file('user/static/css/enter.css')
+
+
+@app.route('/front/js')
+def get_javascript():
+    return app.send_static_file('user/static/js/enter.js')
+
+
+@app.route('/front/smoth')
+def get_smoth():
+    return app.send_static_file('user/smoth.js')
+
+
+@app.route('/mypage')
 @app.route('/')
 def main():
     if 'token' in session:
