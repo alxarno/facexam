@@ -100,8 +100,13 @@ def smth():
     if verif_admin():
         data = json.loads(request.data)
         token = data['token']
+        subject = Subject.query.filter_by(codename=data['subject']).first()
         current_admin = User.query.filter_by(token=token).first()
-        current_admin.info_page[0].user_achievements = json.dumps({})
+        # current_admin.info_page[0].last_actions = json.dumps({"type": "tasks", "count": 5, "subject": subject.id})
+        # current_admin.info_page[0].last_actions = json.dumps([])
+        last_actions = json.loads(current_admin.info_page[0].last_actions)
+        last_actions.append({"type": "test", "test_type": "custom", "count": 25, "subject": subject.id})
+        current_admin.info_page[0].last_actions = json.dumps(last_actions)
         db.session.commit()
         return jsonify(result="Success")
     else:

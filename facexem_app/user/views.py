@@ -8,7 +8,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
 from ..subject.models import Subject, Lection, Task, Challenge
-from .methods import somefuncs
+from .methods import somefuncs, user_page_funcs
 from ..achievements.models import Achievement
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
@@ -146,28 +146,7 @@ def logout():
 def get_page_info():
     maybe_user = verif_user()
     if maybe_user:
-        info = maybe_user.info_page
-        name = maybe_user.name
-        city = info[0].city
-        exp = info[0].experience
-        photo = info[0].photo
-        about = info[0].about
-        background = info[0].user_active_background
-        if maybe_user.role == 3:
-            roots = 'admin'
-        elif maybe_user == 2:
-            roots = 'author'
-        else:
-            roots = 'user'
-        finish = [{'photo': photo,
-                   'about': about,
-                   'background': background,
-                   'name': name,
-                   'city': city,
-                   'exp': exp,
-                   'roots': roots,
-                   'streack': 5}]
-        return jsonify(finish)
+        return jsonify(user_page_funcs.user_get_page_info(maybe_user))
     else:
         return jsonify(result='Error')
 
@@ -226,29 +205,7 @@ def set_subjects():
 def get_subjects():
     maybe_user = verif_user()
     if maybe_user:
-        subjects = maybe_user.info_subjects
-        result = []
-        for s in subjects:
-            real_subject = Subject.query.filter_by(codename=s.subject_codename).first()
-            if real_subject:
-                subjectCount = s.points_of_tests
-                if subjectCount == '':
-                    subjectCount = 0
-                subject = {'link': s.subject_codename,
-                           'subjectName': real_subject.name,
-                           'image': 'subject_pic/'+s.subject_codename,
-                           'subjectCount': subjectCount,
-                           'subjectAll': 100}
-                result.append(subject)
-        # for i in range(len(result)-1, -1, -1):
-        #     j = 0
-        #     while j < i:
-        #         if result[j]['experience'] > result[j+1]['experience']:
-        #             smth = result[j].copy()
-        #             result[j] = result[j+1]
-        #             result[j+1] = smth
-        #         j += 1
-        return jsonify(result)
+        return jsonify(user_page_funcs.user_get_subjects(maybe_user))
     else:
         return jsonify(result='Fail this token is havent')
 
@@ -358,41 +315,8 @@ def get_progress():
 @user.route('/get_activity', methods=['POST'])
 def get_activity():
     now_user = verif_user()
-    now_time = time.localtime()
-    now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
-    final = []
-    # creating array with last 7 days dates
-    dates = []
-    i = 6
-    while i >= 0:
-        date = now_date - datetime.timedelta(days=i)
-        dates.append(str(date))
-        i -= 1
     if now_user:
-        user_activities = now_user.activity
-        # test, is day of activity in last 7 days
-        for day in user_activities:
-            if str(day.date) in dates:
-                print(day.date)
-                final.append(day.lections)
-        if len(final) < 7:
-            times = len(final)
-            while times < 7:
-                final.append(0)
-                times += 1
-        final = list(reversed(final))
-        k = 0
-        for date in dates:
-            dayDate = datetime.datetime.strptime(date, "%Y-%m-%d").date()
-            day = str(dayDate.strftime("%d"))
-            month = int(dayDate.strftime("%m"))
-            months = ['Января', 'Февраля', "Марта", "Апреля", "Мая", "Июня", "Июля", "Августа",
-                      "Сентября", "Ноября", "Декабря"]
-            month = months[month-1]
-            date = str(day+" "+month)
-            dates[k] = date
-            k += 1
-        return jsonify(final, dates)
+        return jsonify(user_page_funcs.user_get_activity(now_user))
     else:
         return jsonify(result='Fail this token is havent')
 
@@ -418,31 +342,17 @@ def change_design():
 @user.route('/get_notifications', methods=['POST'])
 def get_notifications():
     now_user = verif_user()
-    result = []
     if now_user:
-        notifics = now_user.notifications
-        if notifics:
-            for notif in notifics:
-                author = User.query.get(notif.author)
-                author_photo = author.info_page[0].photo
-                notif = {'author': author.name,
-                         'authorPhoto': author_photo,
-                         'text': notif.text,
-                         'type': notif.type}
-                result.append(notif)
-            return jsonify(result)
-        else:
-            return jsonify(result)
+        return jsonify(user_page_funcs.user_get_notifications(now_user))
     else:
         return jsonify(result='Fail this token is havent')
 
 
-@user.route('/get_last_lections', methods=['POST'])
-def get_last_lections():
+@user.route('/get_last_actions', methods=['POST'])
+def get_last_actions():
     now_user = verif_user()
     if now_user:
-        lections = now_user.info_page[0].last_lections
-        return lections
+        return jsonify(user_page_funcs.user_get_last_actions(now_user))
     else:
         return jsonify(result='Fail this token is havent')
 
@@ -559,11 +469,11 @@ def get_achieves():
 def global_static():
     now_user = verif_user()
     if now_user:
-        info = now_user.info_page[0]
-        result = {'lections': info.lections,
-                  'tasks': info.tasks,
-                  'tests': info.tests}
-        return jsonify(result)
+        result = user_page_funcs.user_get_global_static(now_user)
+        if result:
+            return jsonify(result)
+        else:
+            return jsonify(result="Error")
     else:
         return jsonify(result="Error")
 
@@ -694,17 +604,27 @@ def get_challenge():
 @user.route('/get_preference', methods=['POST'])
 def get_preference():
     user = verif_user()
-    if user != 0:
-        names = []
-        values = []
-        user_subjects = user.info_subjects
-        for sub in user_subjects:
-            subject = Subject.query.filter_by(codename=sub.subject_codename).first()
-            names.append(subject.name)
-            try:
-                values.append(int(sub.tasks)*(int(sub.points_of_tests)/100))
-            except:
-                values.append(0)
-        return jsonify(values, names)
+    if user:
+        return jsonify(user_page_funcs.user_get_preference(user))
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/get_mypage', methods=['POST'])
+def get_mypage():
+    now_user = verif_user()
+    if now_user:
+        funcs = user_page_funcs
+        user_page_info = funcs.user_get_page_info(now_user)
+        user_subjects = funcs.user_get_subjects(now_user)
+        user_activity = funcs.user_get_activity(now_user)
+        user_preference = funcs.user_get_preference(now_user)
+        user_last_actions = funcs.user_get_last_actions(now_user)
+        user_global_static = funcs.user_get_global_static(now_user)
+        user_notifications = funcs.user_get_notifications(now_user)
+        final = {"info": user_page_info, "subjects": user_subjects, "activity": user_activity,
+                 "preference": user_preference, "actions": user_last_actions,
+                 "global_activ": user_global_static, "notifs": user_notifications}
+        return jsonify(final)
     else:
         return jsonify(result='Error')

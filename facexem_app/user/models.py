@@ -102,7 +102,7 @@ class UserPage(db.Model):
     lections = db.Column(db.Integer(), default=0)
     tasks = db.Column(db.Integer(), default=0)
     tests = db.Column(db.Integer(), default=0)
-    last_lections = db.Column(db.String(64), default=u'')
+    last_actions = db.Column(db.String(512), default=u'')
     user_active_achivs = db.Column(db.String(256), default=u'')
     user_achievements = db.Column(db.String(1500), default=u'')
     user_active_background = db.Column(db.String(20), default=u'')
