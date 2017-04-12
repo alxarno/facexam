@@ -105,9 +105,10 @@ def delete_user():
 @user.route('/get_token', methods=['POST'])
 def get_token():
     if 'token' in session:
+        print('Hello')
         return jsonify(result=session['token'])
     else:
-        return redirect(url_for('login'))
+        return jsonify(result='Error')
 
 
 @user.route('/login', methods=['POST'])
@@ -163,6 +164,16 @@ def set_page_info():
             info[0].photo = photo
         except:
             photo = 0
+        try:
+            name = data['name']
+            maybe_user.name = name
+        except:
+            name = 0
+        try:
+            city = data['city']
+            info[0].city = city
+        except:
+            city = 0
         try:
             about = data['about']
             info[0].about = about
@@ -449,12 +460,19 @@ def get_achieves():
     user = verif_user()
     if user:
         user_achievs = json.loads(user.info_page[0].user_achievements)
+        user_active_achiev = json.loads(user.info_page[0].user_active_achivs)
         achievements = Achievement.query.all()
         final = []
         for ach in achievements:
+            if str(ach.id) in user_active_achiev:
+                choose = True
+            else:
+                choose = False
             now = {'name': ach.name,
                    'content': ach.content,
-                   'max': ach.max}
+                   'max': ach.max,
+                   'img': 'achiev/'+str(ach.id),
+                   'choose': choose}
             try:
                 now['now'] = user_achievs[str(ach.id)]['now']
             except:

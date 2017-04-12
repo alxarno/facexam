@@ -28,6 +28,11 @@ def login():
         return app.send_static_file('enter/index.html')
 
 
+@app.route('/achiev/<smth>')
+def achievements(smth):
+    return app.send_static_file('other/achievements/'+smth+'.svg')
+
+
 @app.route('/bg/<smth>')
 def backgrounds(smth):
     return app.send_static_file('other/backgrounds/'+smth+'.jpg')

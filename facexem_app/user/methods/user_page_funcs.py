@@ -1,4 +1,5 @@
 from ...subject.models import Subject
+from ...achievements.models import Achievement
 from ..models import User
 import datetime
 import time
@@ -30,9 +31,22 @@ def user_get_page_info(user):
     name = user.name
     city = info[0].city
     exp = info[0].experience
+    badges = info[0].user_active_achivs
     photo = info[0].photo
     about = info[0].about
     background = info[0].user_active_background
+    final_achiev = []
+    if badges:
+        try:
+            badges = json.loads(badges)
+            for b in badges:
+                achiev = Achievement.query.filter_by(id=b).first()
+                if achiev:
+                    url = 'achiev/'+str(achiev.id)
+                    achiev = {'img': url, 'tooltip': achiev.name}
+                    final_achiev.append(achiev)
+        except:
+            final_achiev = []
     if user.role == 3:
         roots = 'admin'
     elif user == 2:
@@ -42,6 +56,7 @@ def user_get_page_info(user):
     finish = [{'photo': photo,
                'about': about,
                'background': background,
+               'badges': final_achiev,
                'name': name,
                'city': city,
                'exp': exp,
