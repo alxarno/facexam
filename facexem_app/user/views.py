@@ -8,7 +8,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
 from ..extensions import db
 from ..subject.models import Subject, Lection, Task, Challenge
-from .methods import somefuncs, user_page_funcs
+from .methods import somefuncs, user_page_funcs, subject_page_funcs
 from ..achievements.models import Achievement
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
@@ -626,6 +626,22 @@ def get_preference():
         return jsonify(user_page_funcs.user_get_preference(user))
     else:
         return jsonify(result='Error')
+
+
+@user.route('/get_activity_subject', methods=['POST'])
+def get_subject_activity():
+    now_user = verif_user()
+    if now_user:
+        data = json.loads(request.data)
+        try:
+            subject_codename = data['subject']
+        except:
+            return jsonify(result="Error")
+        result = subject_page_funcs.get_subject_activity(now_user, subject_codename)
+        return jsonify(result)
+    else:
+        return 'Error'
+
 
 
 @user.route('/get_mypage', methods=['POST'])

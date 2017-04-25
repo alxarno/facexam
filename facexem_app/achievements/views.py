@@ -1,12 +1,16 @@
 import json
+from werkzeug.datastructures import ImmutableMultiDict
+import os
 
 from flask import Blueprint, request, jsonify
+from config import UPLOAD_FOLDER
 
 from .models import Achievement
 from ..subject.models import Subject
 from ..user.models import User
 from ..user.constans import ROLES
 from ..extensions import db
+from werkzeug.utils import secure_filename
 
 achievement = Blueprint('achievement', __name__, url_prefix='/api/achievement')
 
@@ -72,6 +76,15 @@ def create():
             return jsonify(result="Error")
     else:
         return jsonify(result="Error")
+
+
+@achievement.route('/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+    return jsonify(result="Success")
 
 
 @achievement.route('/delete', methods=['POST'])

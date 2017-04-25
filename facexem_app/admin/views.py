@@ -1,8 +1,12 @@
 import json
+import time
+import datetime
+import random
+
 
 from flask import Blueprint, request, jsonify, session
 
-from ..user.models import User, TestUser
+from ..user.models import User, TestUser, UserSubjects
 from ..user.constans import ROLES
 from ..subject.models import Task, Subject
 from ..extensions import db
@@ -100,13 +104,27 @@ def smth():
     if verif_admin():
         data = json.loads(request.data)
         token = data['token']
-        subject = Subject.query.filter_by(codename=data['subject']).first()
+        subject = data['subject']
+        now_time = time.localtime()
+        now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
+        # creating array with last 7 days dates
+        dates = []
+        final = {}
+        i = 6
+        while i >= 0:
+            date = now_date - datetime.timedelta(days=i)
+            dates.append(str(date))
+            i -= 1
+        for i in dates:
+            final[i] = random.randint(0, 100)
         current_admin = User.query.filter_by(token=token).first()
-        # current_admin.info_page[0].last_actions = json.dumps({"type": "tasks", "count": 5, "subject": subject.id})
-        # current_admin.info_page[0].last_actions = json.dumps([])
-        last_actions = json.loads(current_admin.info_page[0].last_actions)
-        last_actions.append({"type": "test", "test_type": "custom", "count": 25, "subject": subject.id})
-        current_admin.info_page[0].last_actions = json.dumps(last_actions)
+        real_subjects = current_admin.info_subjects
+        r_subject = 0
+        for j in real_subjects:
+            if j.subject_codename == subject:
+                r_subject = j
+        sub = UserSubjects.query.filter_by(id=r_subject.id).first()
+        sub.activity = json.dumps(final)
         db.session.commit()
         return jsonify(result="Success")
     else:

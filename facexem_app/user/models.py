@@ -133,6 +133,8 @@ class UserSubjects(db.Model):
     points_of_tests = db.Column(db.Integer, default=0)
     tasks = db.Column(db.Integer, default=0)
     experience = db.Column(db.Integer, default=0)
+    activity = db.Column(db.String(512), default=u'')
+    # {'date': 23,...}
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     now_challenge = db.Column(db.String(128))
     # now_challenge struct - [id, now result, close?]
