@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, session, url_for, request
+from flask import Flask, jsonify, session, url_for, request, redirect
 from .extensions import db, lm
 from .user.views import user
 from .subject.views import subject
 from .admin.views import admin
 from .achievements.views import achievement
+from .user.models import User
 from flask_cors import CORS
 
 app = Flask('Facexem', instance_relative_config=True, static_folder='frontend')
@@ -20,10 +21,10 @@ lm.login_view = 'login'
 CORS(app)
 
 
-@app.route('/login')
+@app.route('/login', methods=['GET'])
 def login():
     if 'token' in session:
-        return session['token']
+        return redirect(url_for('main'))
     else:
         return app.send_static_file('enter/index.html')
 
@@ -63,13 +64,31 @@ def get_smoth():
     return app.send_static_file('user/smoth.js')
 
 
-@app.route('/mypage')
-@app.route('/')
+@app.route('/create-profile', methods=['GET'])
+def create_profile():
+    if 'token' in session:
+        user = User.query.filter_by(token=session['token']).first()
+        if user.profile_done == 1:
+            return app.send_static_file('log-in/index.html')
+        else:
+            return redirect(url_for('main'))
+    else:
+        return redirect(url_for('login'))
+
+
+
+
+@app.route('/mypage',  methods=['GET'])
 def main():
     if 'token' in session:
-        return app.send_static_file('user/index.html')
+        user = User.query.filter_by(token=session['token']).first()
+        if user.profile_done == 0:
+            print(user.profile_done)
+            return redirect(url_for('create_profile'))
+        else:
+            return app.send_static_file('user/index.html')
     else:
-        return app.send_static_file('enter/index.html')
+        return redirect(url_for('login'))
 
 
 @app.errorhandler(405)

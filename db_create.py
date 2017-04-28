@@ -6,7 +6,7 @@ from facexem_app.user.constans import ROLES
 from facexem_app.extensions import db
 import os.path
 db.create_all()
-superuser = User(name='AlexArno', password='1111', email='ledssssa@gmail.com',
+superuser = User(name='AlexArno', password='9f18cead', email='ledssssa@gmail.com',
                          role=ROLES['ADMIN'])
 db.session.add(superuser)
 db.session.commit()

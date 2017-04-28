@@ -15,10 +15,15 @@ from werkzeug.utils import secure_filename
 achievement = Blueprint('achievement', __name__, url_prefix='/api/achievement')
 
 
-def verif_author():
+def verif_author(token=''):
+    if token == '':
+        try:
+            data = json.loads(request.data)
+            token = data['token']
+        except:
+            return False
     try:
-        data = json.loads(request.data)
-        token = data['token']
+        print(token)
         current_admin = User.query.filter_by(token=token).first()
         if current_admin:
             if (current_admin.role == ROLES['ADMIN']) or (current_admin.role == ROLES['AUTHOR']):
@@ -46,10 +51,10 @@ def get_all():
         achievs = Achievement.query.all()
         for i in achievs:
             final.append({'id': i.id, 'name': i.name, 'content': i.content, 'type': i.type,
-                          'subject_id': i.subject_id })
+                          'subject_id': i.subject_id, 'user_id': i.user_id})
         return jsonify(final)
     else:
-        return jsonify(result="Error")
+        return jsonify(result="Error: you're not author")
 
 
 @achievement.route('/create', methods=['POST'])
@@ -81,9 +86,20 @@ def create():
 @achievement.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+    print(file)
+    data = dict(request.form)
+    if verif_author(data['token'][0]):
+        try:
+            name = data['name'][0]
+            conent = data['content'][0]
+            type = data['type'][0]
+            condition = data["condition"][0]
+        except:
+            return jsonify(result="Error: not all data there are")
+
+    # if file and file.filename:
+    #     filename = secure_filename(file.filename)
+    #     file.save(os.path.join(UPLOAD_FOLDER, filename))
     return jsonify(result="Success")
 
 

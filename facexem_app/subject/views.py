@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, session
 from ..extensions import db
 import json
-from .models import Subject, Lection, Theme, Task, Challenge
+from .models import Subject, Task, Challenge
 from ..user.models import User
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
@@ -58,40 +58,7 @@ def get_subjects():
         return jsonify(result='error')
 
 
-@subject.route('/get_themes', methods=['POST'])
-def get_themes():
-    if verif_author():
-        themes = Theme.query.all()
-        result = []
-        for theme in themes:
-            subject_of_theme = Subject.query.get(theme.subject_id)
-            result.append({'name': theme.name, 'subject': subject_of_theme.name, 'id': theme.id})
-        return jsonify(result)
-    else:
-        return jsonify(result='error')
 
-
-@subject.route('/get_lections', methods=['POST'])
-def get_lections():
-    if verif_author():
-        try:
-            data = json.loads(request.data)
-            subject_code_name = data['subject_code_name']
-        except:
-            return jsonify(result='error')
-        current_subject = Subject.query.filter_by(codename=subject_code_name).first()
-        if current_subject:
-            themes = current_subject.themes
-            theme = []
-            for j in themes:
-                lections = j.lections
-                lections_final = []
-                for k in lections:
-                    lections_final.append({"id": k.id, "name": k.name})
-                theme.append({'name': j.name, 'lections': lections_final})
-            return jsonify(theme)
-        else:
-            return jsonify(result='Error: this subject havent')
 
 
 @subject.route('/create_subject', methods=['POST'])
@@ -115,70 +82,9 @@ def create_subject():
         return jsonify(result='error')
 
 
-@subject.route('/create_theme', methods=['POST'])
-def create_theme():
-    if verif_author():
-        try:
-            data = json.loads(request.data)
-            subject_code = data['subject_code']
-            name = data['name']
-        except:
-            jsonify(result='Error')
-        current_subject = Subject.query.filter_by(codename=subject_code).first()
-        if current_subject:
-            theme = Theme(name=name, subject=current_subject)
-            db.session.add(theme)
-            db.session.commit()
-            print("Theme " + name + " is created")
-            return jsonify(result='Success')
-        else:
-            return jsonify(result='Error: this subject havent')
-    else:
-        return jsonify(result='Error')
 
 
-@subject.route('/create_lection', methods=['POST'])
-def create_lection():
-    if verif_author():
-        try:
-            data = json.loads(request.data)
-            theme_id = data['theme_id']
-            lection_name = data['lection_name']
-            lection_description = data['description']
-            lection_type = data['type']
-            lection_content = json.dumps(data['lection_content'])
-        except:
-            return jsonify(result='Error')
-        current_them = Theme.query.get(theme_id)
-        if current_them:
-            l = Lection(name=lection_name, content=lection_content, theme=current_them,
-                        description=lection_description, type=lection_type)
-            db.session.add(l)
-            db.session.commit()
-            return jsonify(result='Success')
-        else:
-            return jsonify(result='Error: this theme havent')
-    else:
-        return jsonify(result='Error')
 
-
-@subject.route('/delete_lection', methods=['POST'])
-def delete_lection():
-    if verif_author():
-        try:
-            data = json.loads(request.data)
-            lection_id = data['id']
-        except:
-            return jsonify(result='Error')
-        u = Lection.query.filter_by(id=lection_id).first()
-        if u:
-            db.session.delete(u)
-            db.session.commit()
-            return jsonify(result='Success')
-        else:
-            return jsonify(result='Error: this lection havent')
-    else:
-        return jsonify(result='Error')
 
 
 @subject.route('/get_tasks', methods=['POST'])

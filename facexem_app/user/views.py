@@ -5,9 +5,9 @@ import random
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
-from .models import User, TestUser, UserPage, UserSubjects, UserActivity, UserNotifications
+from .models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject, Lection, Task, Challenge
+from ..subject.models import Subject, Task, Challenge
 from .methods import somefuncs, user_page_funcs, subject_page_funcs
 from ..achievements.models import Achievement
 
@@ -18,6 +18,7 @@ def verif_user():
     try:
         data = json.loads(request.data)
         user_token = data['token']
+        print(user_token)
         maybe_user = User.query.filter_by(token=user_token).first()
         return maybe_user
     except:
@@ -59,8 +60,8 @@ def prove_email():
             token = new_user.token
             session['token'] = token
             session.pop('test_email', None)
-            info = UserPage(photo='', about='', user_active_achivs='', user=new_user, last_lections=json.dumps([]))
-            db.session.add(info)
+            # info = UserPage(photo='', about='', user_active_achivs='', user=new_user, last_lections=json.dumps([]))
+            # db.session.add(info)
             TestUser.query.filter_by(email=email).delete()
             db.session.commit()
             print("User " + name + " is created")
@@ -69,6 +70,37 @@ def prove_email():
             return jsonify(result='Bad email')
     else:
         return jsonify(result="Bad key")
+
+
+@user.route('/done_create_page', methods=['POST'])
+def done_create_page():
+    user = verif_user()
+    if user:
+        if user.profile_done == 0:
+            try:
+                data = json.loads(request.data)
+                city = data['city']
+                about = data['about']
+                subjects = data['subjects']
+            except:
+                return jsonify(result="Error")
+            info = UserPage(photo='jeorge', city=city, about=about,
+                            user_active_achivs='', user=user)
+            db.session.add(info)
+            for i in subjects:
+                subject = Subject.query.filter_by(codename=i).first()
+                if subject:
+                    user_subject= UserSubjects(subject_codename=i, passed_lections=json.dumps([]),
+                                 passed_tests='', experience=0,
+                                 points_of_tests='', user=user)
+                    db.session.add(user_subject)
+            user.profile_done = 1
+            db.session.commit()
+            return jsonify(result="Success")
+        else:
+            return jsonify(result="Error")
+    else:
+        return jsonify(result="Error")
 
 
 @user.route('/delete', methods=['POST'])
@@ -105,7 +137,6 @@ def delete_user():
 @user.route('/get_token', methods=['POST'])
 def get_token():
     if 'token' in session:
-        print('Hello')
         return jsonify(result=session['token'])
     else:
         return jsonify(result='Error')
@@ -134,7 +165,7 @@ def login_user():
             return jsonify(result="Error")
 
 
-@user.route('/logout', methods=['POST', "GET"])
+@user.route('/logout', methods=['GET', 'POST'])
 def logout():
     if 'token' not in session:
         return jsonify(result="Error")
@@ -459,8 +490,14 @@ def check_task():
 def get_achieves():
     user = verif_user()
     if user:
-        user_achievs = json.loads(user.info_page[0].user_achievements)
-        user_active_achiev = json.loads(user.info_page[0].user_active_achivs)
+        try:
+            user_achievs = json.loads(user.info_page[0].user_achievements)
+        except:
+            user_achievs = []
+        try:
+            user_active_achiev = json.loads(user.info_page[0].user_active_achivs)
+        except:
+            user_active_achiev = []
         achievements = Achievement.query.all()
         final = []
         for ach in achievements:
@@ -643,7 +680,6 @@ def get_subject_activity():
         return 'Error'
 
 
-
 @user.route('/get_mypage', methods=['POST'])
 def get_mypage():
     now_user = verif_user()
@@ -655,10 +691,9 @@ def get_mypage():
         user_preference = funcs.user_get_preference(now_user)
         user_last_actions = funcs.user_get_last_actions(now_user)
         user_global_static = funcs.user_get_global_static(now_user)
-        user_notifications = funcs.user_get_notifications(now_user)
         final = {"info": user_page_info, "subjects": user_subjects, "activity": user_activity,
                  "preference": user_preference, "actions": user_last_actions,
-                 "global_activ": user_global_static, "notifs": user_notifications}
+                 "global_activ": user_global_static, "notifs": []}
         return jsonify(final)
     else:
         return jsonify(result='Error')

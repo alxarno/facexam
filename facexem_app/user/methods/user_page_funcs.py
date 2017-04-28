@@ -120,9 +120,16 @@ def user_get_preference(user):
 def user_get_last_actions(user):
     final = []
     actions = user.info_page[0].last_actions
+    if actions != 0:
+        try:
+            actions = json.loads(actions)
+        except:
+            actions=[]
+    else:
+        actions = []
     if not actions:
         actions = []
-    for action in json.loads(actions):
+    for action in actions:
         subject = Subject.query.filter_by(id=action['subject']).first()
         if action['type'] == "tasks":
             final.append({"text": str(action['count']) + " заданий по предмету " + subject.name,
@@ -168,16 +175,3 @@ def user_get_global_static(user):
         return 0
 
 
-def user_get_notifications(user):
-    notifics = user.notifications
-    result = []
-    if notifics:
-        for notif in notifics:
-            author = User.query.get(notif.author)
-            author_photo = author.info_page[0].photo
-            notif = {'author': author.name,
-                     'authorPhoto': author_photo,
-                     'text': notif.text,
-                     'type': notif.type}
-            result.append(notif)
-    return result

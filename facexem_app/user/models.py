@@ -15,12 +15,12 @@ class User(db.Model):
     google_id = db.Column(db.String(120), unique=True)
     token = db.Column(db.String(255))
     pw_hash = db.Column(db.String(255))
+    profile_done = db.Column(db.SmallInteger, default=0)
     role = db.Column(db.SmallInteger, default=ROLES['USER'])
 
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
-    notifications = db.relationship('UserNotifications', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -156,14 +156,4 @@ class UserActivity(db.Model):
         return '<UserActivity %r>' % self.user_id
 
 
-class UserNotifications(db.Model):
-    __tablename__ = "user_notifications"
-    id = db.Column(db.Integer, primary_key=True)
-    author = db.Column(db.Integer)
-    text = db.Column(db.String(128))
-    date = db.Column(db.Integer)
-    type = db.Column(db.String(20))
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
-    def __repr__(self):
-        return '<UserActivity %r>' % self.user_id
