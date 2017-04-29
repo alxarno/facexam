@@ -58,9 +58,6 @@ def get_subjects():
         return jsonify(result='error')
 
 
-
-
-
 @subject.route('/create_subject', methods=['POST'])
 def create_subject():
     if verif_author():

@@ -68,7 +68,7 @@ def get_smoth():
 def create_profile():
     if 'token' in session:
         user = User.query.filter_by(token=session['token']).first()
-        if user.profile_done == 1:
+        if user.profile_done != 1:
             return app.send_static_file('log-in/index.html')
         else:
             return redirect(url_for('main'))
@@ -76,14 +76,11 @@ def create_profile():
         return redirect(url_for('login'))
 
 
-
-
 @app.route('/mypage',  methods=['GET'])
 def main():
     if 'token' in session:
         user = User.query.filter_by(token=session['token']).first()
         if user.profile_done == 0:
-            print(user.profile_done)
             return redirect(url_for('create_profile'))
         else:
             return app.send_static_file('user/index.html')

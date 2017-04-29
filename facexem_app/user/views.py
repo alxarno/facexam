@@ -2,6 +2,7 @@ import datetime
 import time
 import json
 import random
+import smtplib
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
@@ -37,6 +38,20 @@ def create_user():
         new_test_user = TestUser(email)
         db.session.add(new_test_user)
         db.session.commit()
+        smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+        smtpObj.starttls()
+        smtpObj.login('facile.exem@gmail.com', 'e710bf70dd906bebaa0b66982eb6e90c')
+        SUBJECT = 'Подтверждение почты Facexem'
+        TEXT = 'Ваш проверочный код - ' + str(new_test_user.key)
+        BODY = "\r\n".join((
+            "From: %s" % "facile.exem@gmail.com",
+            "To: %s" % email,
+            "Subject: %s" % SUBJECT,
+            "",
+            TEXT
+        ))
+        smtpObj.sendmail("facile.exem@gmail.com", email, BODY)
+        smtpObj.quit()
         return jsonify(result=new_test_user.key)
     else:
         return jsonify(result="Error")
@@ -91,7 +106,7 @@ def done_create_page():
                 subject = Subject.query.filter_by(codename=i).first()
                 if subject:
                     user_subject= UserSubjects(subject_codename=i, passed_lections=json.dumps([]),
-                                 passed_tests='', experience=0,
+                                 passed_tests='[]', experience=0,
                                  points_of_tests='', user=user)
                     db.session.add(user_subject)
             user.profile_done = 1
@@ -251,81 +266,20 @@ def get_subjects():
     else:
         return jsonify(result='Fail this token is havent')
 
-#
-# @user.route('/get_lections', methods=['POST'])
-# def get_lections():
-#     data = json.loads(request.data)
-#     subject_code_name = data['subject_code_name']
-#     users_lections = verif_user()
-#     true_subject = ''
-#     for subject in users_lections.info_subjects:
-#         if subject.subject_codename == subject_code_name:
-#             true_subject = subject
-#     if true_subject != '':
-#         if true_subject.passed_lections != '':
-#             users_lections = json.loads(true_subject.passed_lections)
-#         else:
-#             users_lections = []
-#         current_subject = Subject.query.filter_by(codename=subject_code_name).first()
-#         if current_subject:
-#             themes = current_subject.themes
-#             theme = []
-#             number_theme = 1
-#             for j in themes:
-#                 lections = j.lections
-#                 lections_final = []
-#                 number = 0
-#                 for k in lections:
-#                     if str(k.id) in users_lections:
-#                         lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
-#                                    'number': number, 'type': k.type, 'theme': number_theme, 'done': True}
-#                     else:
-#                         lection = {'name': k.name, 'description': k.description, 'link': '/lection/' + str(k.id),
-#                                    'number': number, 'type': k.type, 'theme': number_theme}
-#                     number += 1
-#                     lections_final.append(lection)
-#                 number_theme += 1
-#                 theme.append({'name': j.name, 'lections': lections_final})
-#             return jsonify(theme)
-#         else:
-#             return jsonify(result='Error')
-#     else:
-#         return jsonify(result='Error')
 
-#
-# @user.route('/set_view_lection', methods=['POST'])
-# def set_view_lection():
-#     data = json.loads(request.data)
-#     now_user = verif_user()
-#     if now_user:
-#         try:
-#             subject_code_name = data['subject_codename']
-#             lection_id = str(data['lection_id'])
-#         except:
-#             return jsonify(result="Error")
-#         user_activities = now_user.activity
-#         true_subject = ''
-#         # prove that user have subject of lection or smth
-#         for subject in now_user.info_subjects:
-#             if subject.subject_codename == subject_code_name:
-#                 true_subject = subject
-#         if true_subject != '':
-#             if true_subject.passed_lections != '':
-#                 passed_lections = json.loads(true_subject.passed_lections)
-#                 if lection_id not in passed_lections:
-#                     passed_lections.append(lection_id)
-#                     somefuncs.set_activity_user(user_activities, now_user)
-#                     somefuncs.reg_achievements_progress('lection', now_user)
-#                     now_user.info_page[0].lections += 1
-#             else:
-#                 passed_lections = [lection_id]
-#             true_subject.passed_lections = json.dumps(passed_lections)
-#             db.session.commit()
-#             return jsonify(result="Success")
-#         else:
-#             return jsonify(result="Error")
-#     else:
-#         return jsonify(result='Error')
+@user.route('/get_all_subjects', methods=['POST'])
+def get_all_subjects():
+    user = verif_user()
+    if user:
+        final = []
+        db.session.commit()
+        subjects = Subject.query.all()
+        for s in subjects:
+            if s.access == 1:
+                final.append({"name": s.name, "codename": s.codename})
+        return jsonify(final)
+    else:
+        return jsonify(result='Fail this token is havent')
 
 
 @user.route('/get_progress', methods=['POST'])

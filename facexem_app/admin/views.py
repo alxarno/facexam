@@ -129,3 +129,22 @@ def smth():
         return jsonify(result="Success")
     else:
         return jsonify(result="Error")
+
+
+@admin.route('/define-subject', methods=['POST'])
+def define_subject():
+    if verif_admin():
+        try:
+            data = json.loads(request.data)
+            codename = data['codename']
+            define = data['define']
+        except:
+            return jsonify(result="Error: required subject's codename and defined value")
+        subject = Subject.query.filter_by(codename=codename).first()
+        if subject:
+            subject.access = define
+            db.session.commit()
+            return jsonify(result="Success")
+        return jsonify(result="Error: subject is not exist")
+    else:
+        return jsonify(result="Error: you aren't admin")
