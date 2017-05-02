@@ -23,11 +23,10 @@ def verif_author(token=''):
         except:
             return False
     try:
-        print(token)
         current_admin = User.query.filter_by(token=token).first()
         if current_admin:
             if (current_admin.role == ROLES['ADMIN']) or (current_admin.role == ROLES['AUTHOR']):
-                return True
+                return current_admin
             else:
                 return False
         else:
@@ -73,7 +72,7 @@ def create():
         subject = Subject.query.filter_by(codename=subject_codename).first()
         if subject:
             new_achiev = Achievement(name=name, content=content, type=type, max=int(max),
-                                     condition=json.dumps(condition), subject=subject)
+                                     condition=json.dumps(condition), subject=subject, user=verif_author())
             db.session.add(new_achiev)
             db.session.commit()
             return jsonify(result="Success")
@@ -86,20 +85,27 @@ def create():
 @achievement.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
-    print(file)
     data = dict(request.form)
     if verif_author(data['token'][0]):
         try:
             name = data['name'][0]
-            conent = data['content'][0]
+            content = data['content'][0]
             type = data['type'][0]
+            count = data['count'][0]
             condition = data["condition"][0]
+            codename = data['codename'][0]
+            print(name, content, type, condition, codename, file.filename)
         except:
             return jsonify(result="Error: not all data there are")
-
-    # if file and file.filename:
-    #     filename = secure_filename(file.filename)
-    #     file.save(os.path.join(UPLOAD_FOLDER, filename))
+        subject = Subject.query.filter_by(codename=codename).first()
+        if subject:
+            new_achiev = Achievement(name=name, content=content, type=type, max=int(count),
+                                     condition=condition, subject=subject, user=verif_author(data['token'][0]))
+            db.session.add(new_achiev)
+            db.session.commit()
+            if file and file.filename:
+                file.save(os.path.join(UPLOAD_FOLDER, str(new_achiev.id)+'.png'))
+            return jsonify(result="Success")
     return jsonify(result="Success")
 
 

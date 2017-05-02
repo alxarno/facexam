@@ -3,6 +3,8 @@ import time
 import json
 import random
 import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
@@ -34,23 +36,37 @@ def create_user():
     except:
         return jsonify(result="Error")
     current_email = User.query.filter_by(email=email).first()
+    already = TestUser.query.filter_by(email=email).first()
+    if already:
+        db.session.delete(already)
+        db.session.commit()
     if current_email is None:
         new_test_user = TestUser(email)
         db.session.add(new_test_user)
         db.session.commit()
+        me  = 'facile.exem@gmail.com'
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Подтверждение почты Facexem'
+        msg['From'] = me
+        msg['To'] = email
+
+        html = """\
+        <html>
+          <head></head>
+          <body>
+            <p>Hi!<br>
+               How are you?<br>
+               Here is the <a href="http://127.0.0.1/prove-email/">prove email</a> you wanted.
+            </p>
+          </body>
+        </html>
+        """
+        part = MIMEText(html, 'html')
+        msg.attach(part)
         smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
         smtpObj.starttls()
         smtpObj.login('facile.exem@gmail.com', 'e710bf70dd906bebaa0b66982eb6e90c')
-        SUBJECT = 'Подтверждение почты Facexem'
-        TEXT = 'Ваш проверочный код - ' + str(new_test_user.key)
-        BODY = "\r\n".join((
-            "From: %s" % "facile.exem@gmail.com",
-            "To: %s" % email,
-            "Subject: %s" % SUBJECT,
-            "",
-            TEXT
-        ))
-        smtpObj.sendmail("facile.exem@gmail.com", email, BODY)
+        smtpObj.sendmail(me, email, msg.as_string())
         smtpObj.quit()
         return jsonify(result=new_test_user.key)
     else:
@@ -75,7 +91,7 @@ def prove_email():
             token = new_user.token
             session['token'] = token
             session.pop('test_email', None)
-            # info = UserPage(photo='', about='', user_active_achivs='', user=new_user, last_lections=json.dumps([]))
+            # info = UserPage(photo='', about='', user_active_achivs='', user=new_user, city='', experience=0)
             # db.session.add(info)
             TestUser.query.filter_by(email=email).delete()
             db.session.commit()
@@ -100,15 +116,20 @@ def done_create_page():
             except:
                 return jsonify(result="Error")
             info = UserPage(photo='jeorge', city=city, about=about,
-                            user_active_achivs='', user=user)
+                            user_active_achivs=json.dumps([]), user=user, experience=0, last_actions=json.dumps([]),
+                            user_achievements = json.dumps([]), user_active_background='/bg/wall1')
             db.session.add(info)
+            count = 0
             for i in subjects:
+                if count > 3:
+                    continue
                 subject = Subject.query.filter_by(codename=i).first()
                 if subject:
-                    user_subject= UserSubjects(subject_codename=i, passed_lections=json.dumps([]),
-                                 passed_tests='[]', experience=0,
-                                 points_of_tests='', user=user)
+                    user_subject = UserSubjects(subject_codename=i, passed_lections=json.dumps([]),\
+                                 passed_tests=json.dumps([]), experience=0, activity=json.dumps([]),\
+                                 points_of_tests=0, user=user, now_challenge=json.dumps([]))
                     db.session.add(user_subject)
+                    count += 1
             user.profile_done = 1
             db.session.commit()
             return jsonify(result="Success")

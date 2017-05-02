@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 from config import SECRET_KEY
 import time
+from ..achievements.models import Achievement
 
 
 class User(db.Model):
@@ -21,6 +22,7 @@ class User(db.Model):
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
+    achievements = db.relationship('Achievement', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
@@ -44,7 +46,8 @@ class User(db.Model):
         return check_password_hash(self.pw_hash, password)
 
     def set_token(self, smth_id, secret):
-        self.token = hashlib.sha1(smth_id.encode('utf8') + secret.encode('utf8')).hexdigest()
+        t = time.time()
+        self.token = hashlib.sha1(smth_id.encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
 
     def set_google_id(self, google_id):
         self.google_id = google_id
