@@ -119,4 +119,27 @@ def save_achievement():
         return jsonify(result='Error')
 
 
+@author.route('/my_tasks', methods=['POST'])
+def my_tasks():
+    author = verif_author()
+    if author:
+        achiev = Task.query.filter_by(author_id=author.id)
+        final = []
+        subjects = {}
+        for i in achiev:
+            if i.subject_id in subjects:
+                subject = achiev[i.subject_id]
+            else:
+                subject = Subject.query.filter_by(id=i.subject_id).first()
+                if subject:
+                    subject = subject.name
+                    subjects[i.subject_id] = subject
+                else:
+                    subject = 'Error'
+            final.append({"id": i.id, "number": i.number, "subject": subject})
+        return jsonify(final)
+    else:
+        return jsonify(result='Error')
+
+
 

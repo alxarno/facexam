@@ -21,6 +21,7 @@ class Task(db.Model):
     answer = db.Column(db.String(64))
     description = db.Column(db.String(2000))
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+    author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
 
 class Challenge(db.Model):

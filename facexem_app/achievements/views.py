@@ -126,3 +126,35 @@ def delete():
             return jsonify(result='Error')
     else:
         return jsonify(result="Error")
+
+
+@achievement.route('/change', methods=['POST'])
+def change():
+    data = dict(request.form)
+    if verif_author(data['token'][0]):
+        try:
+            name = data['name'][0]
+            content = data['content'][0]
+            count = data['count'][0]
+            id = data['id'][0]
+        except:
+            return jsonify(result="Error: not all data there are")
+        achiev = Achievement.query.filter_by(id=id).first()
+        if achiev:
+            achiev.name = name
+            achiev.content = content
+            achiev.count = count
+            try:
+                file = request.files['file']
+                if file and file.filename:
+                    file.save(os.path.join(UPLOAD_FOLDER, str(achiev.id)+'.png'))
+                db.session.commit()
+                return jsonify(result="Success")
+            except:
+                db.session.commit()
+                return jsonify(result="Success")
+        else:
+            return jsonify(result="Error")
+    else:
+        return jsonify(result="Error")
+

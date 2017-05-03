@@ -79,11 +79,6 @@ def create_subject():
         return jsonify(result='error')
 
 
-
-
-
-
-
 @subject.route('/get_tasks', methods=['POST'])
 def get_tasks():
     if verif_author():

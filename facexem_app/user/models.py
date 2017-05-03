@@ -23,6 +23,7 @@ class User(db.Model):
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
     achievements = db.relationship('Achievement', backref='user')
+    tasks = db.relationship('Task', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
