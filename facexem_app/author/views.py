@@ -1,41 +1,41 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 import json
+import time
 from ..user.models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge
+from ..subject.models import Subject, Task, Challenge, Content
 from ..achievements.models import Achievement
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
+import os
+from config import SUBJECT_FOLDER
 
 author = Blueprint('author', __name__, url_prefix='/api/author')
 
 
-def verif_author():
+def verif_author(token='', user_code=''):
     try:
         data = json.loads(request.data)
         token = data['token']
-        current_author = User.query.filter_by(token=token).first()
-        if current_author:
-            if (current_author.role == ROLES['ADMIN']) or (current_author.role == ROLES['AUTHOR']):
-                if 'token' in session:
-                    if session['token'] == token:
-                        return current_author
-                    else:
-                        return False
+        user_code = data['code']
+    except:
+        data = ''
+    current_author = User.query.filter_by(token=token).first()
+    if current_author:
+        if (current_author.role == ROLES['ADMIN']) or (current_author.role == ROLES['AUTHOR']):
+            if 'token' in session:
+                if session['token'] == token:
+                    return current_author
                 else:
-                    try:
-                        user_code = data['code']
-                    except:
-                        return False
-                    if (user_code == ADMIN_KEY) or (user_code == AUTHOR_KEY):
-                        return current_author
-                    else:
-                        return False
+                    return False
             else:
-                return False
+                if (user_code == ADMIN_KEY) or (user_code == AUTHOR_KEY):
+                    return current_author
+                else:
+                    return False
         else:
             return False
-    except:
+    else:
         return False
 
 
@@ -128,7 +128,7 @@ def my_tasks():
         subjects = {}
         for i in achiev:
             if i.subject_id in subjects:
-                subject = achiev[i.subject_id]
+                subject = subjects[i.subject_id]
             else:
                 subject = Subject.query.filter_by(id=i.subject_id).first()
                 if subject:
@@ -142,4 +142,92 @@ def my_tasks():
         return jsonify(result='Error')
 
 
+@author.route('/create_task', methods=['POST'])
+def create_task():
+    author = verif_author()
+    if author:
+        try:
+            data = json.loads(request.data)
+            number = data['number']
+            codename = data['codename']
+        except:
+            return jsonify(result='Error')
+        subject = Subject.query.filter_by(codename=codename).first()
+        if subject:
+            task = Task(number=number, open=0, subject_id=subject.id, author_id=author.id)
+            db.session.add(task)
+            db.session.commit()
+            content = Content(mainquest=json.dumps([]), quests=json.dumps([]),
+                              answers=json.dumps([]), task_id=task.id)
+            path = SUBJECT_FOLDER
+            path = path + '/' + str(task.id)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            db.session.add(content)
+            db.session.commit()
+            return jsonify(result='/task/redactor/' + str(task.id))
+        else:
+            return jsonify(result='Error')
+    else:
+        return jsonify(result='Error')
 
+
+@author.route('/task_images/<id>', methods=['POST'])
+def task_images(id):
+    author = verif_author()
+    if author:
+        task = Task.query.filter_by(id=id).first()
+        if task:
+            subject = Subject.query.filter_by(id=task.subject_id).first()
+            if subject:
+                path = SUBJECT_FOLDER + '/' + id
+                if os.path.exists(path):
+                    result = os.listdir(path)
+                    return jsonify(result)
+    return jsonify(result='Error')
+
+
+@author.route('/download_task_img/<id>', methods=['POST'])
+def download_task_img(id):
+    file = request.files['file']
+    data = dict(request.form)
+    author = verif_author(data['token'][0], data['code'][0])
+    if author:
+        task = Task.query.filter_by(id=id).first()
+        if task and file:
+            path = SUBJECT_FOLDER + '/' + id
+            if os.path.exists(path):
+                name = []
+                for i in str(time.time()):
+                    if i != '.': name.append(i)
+                name = ''.join(name)
+                file.save(os.path.join(path, name + '.png'))
+                return jsonify(name)
+            else:
+                os.makedirs(path)
+                name = []
+                for i in str(time.time()):
+                    if i != '.': name.append(i)
+                name = ''.join(name)
+                file.save(os.path.join(path, name + '.png'))
+                return jsonify(name)
+    return jsonify(result='Error')
+
+
+@author.route('/delete_img', methods=['POST'])
+def delete_img():
+    author = verif_author()
+    if author:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            name = data['name']
+        except:
+            return jsonify(result='Error')
+        task = Task.query.filter_by(id=id).first()
+        if task:
+            path = SUBJECT_FOLDER + '/' + str(id) + '/' + str(name) + '.png'
+            if os.path.exists(path):
+                os.remove(path)
+                return jsonify(result='Success')
+    return jsonify(result='Error')

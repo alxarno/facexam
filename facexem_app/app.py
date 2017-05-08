@@ -7,6 +7,9 @@ from .admin.views import admin
 from .achievements.views import achievement
 from .user.models import User
 from flask_cors import CORS
+from .user.constans import ROLES
+from config import ADMIN_KEY, AUTHOR_KEY
+import json
 
 app = Flask('Facexem', instance_relative_config=True, static_folder='frontend')
 
@@ -21,6 +24,18 @@ db.init_app(app)
 lm.init_app(app)
 lm.login_view = 'login'
 CORS(app)
+
+
+def verif_author():
+    if 'token' in session:
+        token = session['token']
+        current_author = User.query.filter_by(token=token).first()
+        if current_author:
+            if (current_author.role == ROLES['ADMIN']) or (current_author.role == ROLES['AUTHOR']):
+                return current_author
+    return False
+
+
 
 
 @app.route('/login', methods=['GET'])
@@ -38,6 +53,12 @@ def login():
 @app.route('/achiev/<smth>')
 def achievements(smth):
     return app.send_static_file('other/achievements/'+smth+'.png')
+
+
+@app.route('/task_img/<id>/<name>')
+def task_img(name, id):
+    print(name, id)
+    return app.send_static_file('other/tasks/'+id+'/'+name+'.png')
 
 
 @app.route('/bg/<smth>')
@@ -106,6 +127,15 @@ def enter():
         return redirect(url_for('main'))
     else:
         return redirect(url_for('login'))
+
+
+@app.route('/task/redactor/<number>',  methods=['GET'])
+def redactor_task(number):
+    user = verif_author()
+    if user:
+        return number
+    else:
+        return redirect(url_for('main'))
 
 
 @app.errorhandler(405)

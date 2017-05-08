@@ -17,11 +17,19 @@ class Task(db.Model):
     __tablename__ = "subjects_tasks"
     id = db.Column(db.Integer, primary_key=True)
     number = db.Column(db.Integer())
-    content = db.Column(db.String(1000))
-    answer = db.Column(db.String(64))
-    description = db.Column(db.String(2000))
+    open = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
     author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    content = db.relationship('Content', backref='task')
+
+
+class Content(db.Model):
+    __tablename__ = "tasks_content"
+    id = db.Column(db.Integer, primary_key=True)
+    mainquest = db.Column(db.String(1000))
+    quests = db.Column(db.String(1000))
+    answers = db.Column(db.String(1000))
+    task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
 
 
 class Challenge(db.Model):
