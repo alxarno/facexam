@@ -157,7 +157,7 @@ def create_task():
             task = Task(number=number, open=0, subject_id=subject.id, author_id=author.id)
             db.session.add(task)
             db.session.commit()
-            content = Content(mainquest=json.dumps([]), quests=json.dumps([]),
+            content = Content(content=json.dumps([]), description=json.dumps([]),
                               answers=json.dumps([]), task_id=task.id)
             path = SUBJECT_FOLDER
             path = path + '/' + str(task.id)
@@ -231,3 +231,27 @@ def delete_img():
                 os.remove(path)
                 return jsonify(result='Success')
     return jsonify(result='Error')
+
+
+@author.route('/save_task_content', methods=['POST'])
+def save_task_contetn():
+    author = verif_author()
+    if author:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            content = data['data']
+        except:
+            return jsonify(result='Error')
+        if Task.query.filter_by(id=id).first():
+            content_task = Content.query.filter_by(task_id=id).first()
+            content_task.content = json.dumps(content['content'])
+            content_task.description = json.dumps(content['description'])
+            content_task.answers = json.dumps(content['answers'])
+            db.session.commit()
+            return jsonify(result='Success')
+    return jsonify(result='Error')
+
+
+
+

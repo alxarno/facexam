@@ -26,9 +26,9 @@ class Task(db.Model):
 class Content(db.Model):
     __tablename__ = "tasks_content"
     id = db.Column(db.Integer, primary_key=True)
-    mainquest = db.Column(db.String(1000))
-    quests = db.Column(db.String(1000))
-    answers = db.Column(db.String(1000))
+    content = db.Column(db.String(3000))
+    description = db.Column(db.String(1000))
+    answers = db.Column(db.String(500))
     task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
 
 
