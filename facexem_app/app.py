@@ -63,7 +63,8 @@ def task_img(name, id):
 
 @app.route('/bg/<smth>')
 def backgrounds(smth):
-    return app.send_static_file('other/backgrounds/'+smth+'.jpg')
+    print(smth)
+    return app.send_static_file('other/backgrounds/'+smth+'.png')
 
 
 @app.route('/icon/<smth>')
@@ -133,7 +134,7 @@ def enter():
 def redactor_task(number):
     user = verif_author()
     if user:
-        return number
+        return app.send_static_file('redactor/index.html')
     else:
         return redirect(url_for('main'))
 
