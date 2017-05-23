@@ -100,7 +100,7 @@ def user_get_activity(user):
         date = str(day + " " + month)
         dates[k] = date
         k += 1
-    return [final, dates]
+    return {'values': final, 'dates': dates}
 
 
 def user_get_preference(user):

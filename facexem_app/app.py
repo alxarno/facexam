@@ -55,15 +55,18 @@ def achievements(smth):
     return app.send_static_file('other/achievements/'+smth+'.png')
 
 
+@app.route('/avatars/<smth>')
+def avatars(smth):
+    return app.send_static_file('other/avatars/'+smth+'.png')
+
+
 @app.route('/task_img/<id>/<name>')
 def task_img(name, id):
-    print(name, id)
     return app.send_static_file('other/tasks/'+id+'/'+name+'.png')
 
 
 @app.route('/bg/<smth>')
 def backgrounds(smth):
-    print(smth)
     return app.send_static_file('other/backgrounds/'+smth+'.png')
 
 
@@ -135,6 +138,17 @@ def redactor_task(number):
     user = verif_author()
     if user:
         return app.send_static_file('redactor/index.html')
+    else:
+        return redirect(url_for('main'))
+
+
+@app.route('/achiev',  methods=['GET'])
+@app.route('/tasks',  methods=['GET'])
+@app.route('/author',  methods=['GET'])
+def author_page():
+    user = verif_author()
+    if user:
+        return app.send_static_file('author/index.html')
     else:
         return redirect(url_for('main'))
 

@@ -47,4 +47,4 @@ def get_subject_activity(user, subject_codename):
         date = str(day + " " + month)
         dates[k] = date
         k += 1
-    return [final, dates]
+    return {'values': final, 'dates': dates}

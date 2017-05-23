@@ -10,7 +10,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge
+from ..subject.models import Subject, Task, Challenge, Content
 from .methods import somefuncs, user_page_funcs, subject_page_funcs
 from ..achievements.models import Achievement
 
@@ -21,7 +21,6 @@ def verif_user():
     try:
         data = json.loads(request.data)
         user_token = data['token']
-        print(user_token)
         maybe_user = User.query.filter_by(token=user_token).first()
         return maybe_user
     except:
@@ -403,32 +402,39 @@ def get_last_actions():
 
 @user.route('/get_task', methods=['POST'])
 def get_task():
-    user = verif_user()
     data = json.loads(request.data)
     try:
-        codename = data['subject_codename']
+        codename = data['subject']
+        type =data['type']
     except:
         return jsonify(result='Error')
-    try:
-        number = data['number_task']
-    except:
+    if type == 'singletask':
+        number = data['number']
+    else:
         number = 'any'
     if user:
         subject = Subject.query.filter_by(codename=codename).first()
-        subject_id = subject.id
         if number == 'any':
-            tasks = Task.query.filter_by(subject_id=subject_id).limit(20).all()
+            tasks = Task.query.filter_by(subject_id=subject.id).limit(20).all()
         else:
-            tasks = Task.query.filter_by(subject_id=subject_id, number=number).limit(20).all()
+            tasks = Task.query.filter_by(subject_id=subject.id, number=number).limit(20).all()
         if len(tasks) > 0:
             num_rnd_task = random.randint(0, len(tasks)-1)
             final_task = tasks[num_rnd_task]
-            final_task = {'id': final_task.id, 'content': final_task.content}
+            content = Content.query.filter_by(id=final_task.id).first()
+            final_task = {'id': final_task.id, 'content': json.loads(content.content)}
             return jsonify(final_task)
         else:
             return jsonify(result="Empty")
     else:
-        return jsonify(result='Error')
+        return jsonify(result='Hello')
+
+
+@user.route('/get_answer', methods=['POST'])
+def get_answer():
+    data = json.loads(request.data)
+
+    return jsonify(result='Hello')
 
 
 @user.route('/check_task', methods=['POST'])
