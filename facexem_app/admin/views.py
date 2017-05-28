@@ -10,6 +10,7 @@ from ..user.models import User, TestUser, UserSubjects
 from ..user.constans import ROLES
 from ..subject.models import Task, Subject
 from ..extensions import db
+from .models import Admin
 from config import ADMIN_KEY, AUTHOR_KEY
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -18,25 +19,11 @@ admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 def verif_admin():
     data = json.loads(request.data)
     token = data['token']
-    current_admin = User.query.filter_by(token=token).first()
+    current_admin = Admin.query.filter_by(token=token).first()
     if current_admin:
-        if current_admin.role == ROLES['ADMIN']:
-            if 'token' in session:
-                if session['token'] == token:
-                    return True
-                else:
-                    return False
-            else:
-                try:
-                    user_code = data['code']
-                except:
-                    return False
-                if user_code == ADMIN_KEY:
-                    return True
-                else:
-                    return False
-        else:
-            return False
+        if 'token' in session:
+            if session['token'] == token:
+                return current_admin
     else:
         return False
 
@@ -47,6 +34,24 @@ def info_admin():
         return jsonify(result="Success")
     else:
         return jsonify(result="Error")
+
+
+@admin.route('/login', methods=['POST'])
+def login():
+    try:
+        data = json.loads(request.data)
+        email = data['email']
+        password = data['pass']
+        secret_key = data['key']
+    except:
+        return jsonify(result='Error')
+    admin = Admin.query.filter_by(email=email).first()
+    if admin.check_password(password):
+        if secret_key == ADMIN_KEY:
+            session['admin_token'] = admin.token
+            return jsonify(admin.token)
+    else:
+        return jsonify(result='Error')
 
 
 @admin.route('/get_all_improved_email', methods=['POST'])

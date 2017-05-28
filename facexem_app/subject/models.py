@@ -19,8 +19,9 @@ class Task(db.Model):
     number = db.Column(db.Integer())
     open = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
-    author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
     content = db.relationship('Content', backref='task')
+    issues = db.relationship('Issue', backref='issue')
 
 
 class Content(db.Model):
@@ -42,3 +43,12 @@ class Challenge(db.Model):
     condition = db.Column(db.String(20))
     level_hard = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+
+
+class Issue(db.Model):
+    __tablename__ = "issues"
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(128))
+    solve = db.Column(db.Integer())
+    author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))

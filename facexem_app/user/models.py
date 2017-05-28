@@ -11,34 +11,42 @@ class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
-    name = db.Column(db.String(64), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
     vk_id = db.Column(db.String(120), unique=True)
     google_id = db.Column(db.String(120), unique=True)
-    token = db.Column(db.String(255))
-    pw_hash = db.Column(db.String(255))
+    token = db.Column(db.String(40),  default='')
+    pw_hash = db.Column(db.String(70),  default='')
     profile_done = db.Column(db.SmallInteger, default=0)
-    role = db.Column(db.SmallInteger, default=ROLES['USER'])
+    # role = db.Column(db.SmallInteger, default=ROLES['USER'])
+    public_key = db.Column(db.String(32), default='')
 
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
     achievements = db.relationship('Achievement', backref='user')
-    tasks = db.relationship('Task', backref='user')
+    # tasks = db.relationship('Task', backref='user')
+    reports = db.relationship('Issue', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
-        if password:
-            self.set_password(password)
+        self.set_password(password)
         if vk_id:
             self.set_token(vk_id, SECRET_KEY)
+            self.set_public_key(vk_id, SECRET_KEY)
             self.vk_id = vk_id
         if google_id:
             self.set_token(google_id, SECRET_KEY)
+            self.set_public_key(google_id, SECRET_KEY)
             self.google_id = google_id
         if email:
             self.set_token(email, SECRET_KEY)
+            self.set_public_key(email, SECRET_KEY)
             self.email = email
         self.role = role
+
+    def set_public_key(self, smth_id, secret):
+        t = time.time()
+        self.public_key = hashlib.md5(smth_id.encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
 
     def set_password(self, password):
         self.pw_hash = generate_password_hash(password)
@@ -55,21 +63,6 @@ class User(db.Model):
 
     def set_vk_id(self, vk_id):
         self.vk_id = vk_id
-
-    def get_token(self):
-        return self.token
-
-    def get_id(self):
-        return self.id
-
-    def is_authenticated(self):
-        return True
-
-    def is_active(self):
-        return True
-
-    def is_anonymous(self):
-        return False
 
     def __repr__(self):
         return '<User %r>' % self.name

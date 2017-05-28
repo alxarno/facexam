@@ -3,6 +3,7 @@ from .extensions import db, lm
 from .user.views import user
 from .subject.views import subject
 from .author.views import author
+from .author.models import Author
 from .admin.views import admin
 from .achievements.views import achievement
 from .user.models import User
@@ -30,12 +31,10 @@ def verif_author():
     if 'token' in session:
         token = session['token']
         current_author = User.query.filter_by(token=token).first()
+        current_author = Author.query.filter_by(user_id=current_author.id).first()
         if current_author:
-            if (current_author.role == ROLES['ADMIN']) or (current_author.role == ROLES['AUTHOR']):
                 return current_author
     return False
-
-
 
 
 @app.route('/login', methods=['GET'])

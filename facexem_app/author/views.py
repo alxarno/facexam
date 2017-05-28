@@ -3,7 +3,8 @@ import json
 import time
 from ..user.models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content
+from ..subject.models import Subject, Task, Challenge, Content, Issue
+from .models import Author
 from ..achievements.models import Achievement
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
@@ -17,24 +18,15 @@ def verif_author(token='', user_code=''):
     try:
         data = json.loads(request.data)
         token = data['token']
-        user_code = data['code']
     except:
         data = ''
-    current_author = User.query.filter_by(token=token).first()
+    current_author = Author.query.filter_by(token=token).first()
     if current_author:
-        if (current_author.role == ROLES['ADMIN']) or (current_author.role == ROLES['AUTHOR']):
-            if 'token' in session:
-                if session['token'] == token:
-                    return current_author
-                else:
-                    return False
-            else:
-                if (user_code == ADMIN_KEY) or (user_code == AUTHOR_KEY):
-                    return current_author
-                else:
-                    return False
-        else:
-            return False
+        if 'token' in session:
+            if session['token'] == token:
+                return current_author
+    # else:
+        # current_author =
     else:
         return False
 
@@ -328,3 +320,9 @@ def query_task():
     return jsonify(result='Error')
 
 
+@author.route('/get_my_issues', methods=['POST'])
+def get_my_issues():
+    author = verif_author()
+    if author:
+        return jsonify(result='Success')
+    return jsonify(result='Error')

@@ -10,7 +10,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage, UserSubjects, UserActivity
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content
+from ..subject.models import Subject, Task, Challenge, Content, Issue
 from .methods import somefuncs, user_page_funcs, subject_page_funcs
 from ..achievements.models import Achievement
 
@@ -116,7 +116,7 @@ def done_create_page():
                 return jsonify(result="Error")
             info = UserPage(photo='jeorge', city=city, about=about,
                             user_active_achivs=json.dumps([]), user=user, experience=0, last_actions=json.dumps([]),
-                            user_achievements = json.dumps([]), user_active_background='/bg/wall1')
+                            user_achievements=json.dumps([]), user_active_background='/bg/wall1')
             db.session.add(info)
             count = 0
             for i in subjects:
@@ -125,8 +125,8 @@ def done_create_page():
                 subject = Subject.query.filter_by(codename=i).first()
                 if subject:
                     user_subject = UserSubjects(subject_codename=i, passed_lections=json.dumps([]),\
-                                 passed_tests=json.dumps([]), experience=0, activity=json.dumps([]),\
-                                 points_of_tests=0, user=user, now_challenge=json.dumps([]))
+                                                 passed_tests=json.dumps([]), experience=0, activity=json.dumps([]),\
+                                                 points_of_tests=0, user=user, now_challenge=json.dumps([]))
                     db.session.add(user_subject)
                     count += 1
             user.profile_done = 1
@@ -402,39 +402,89 @@ def get_last_actions():
 
 @user.route('/get_task', methods=['POST'])
 def get_task():
-    data = json.loads(request.data)
-    try:
-        codename = data['subject']
-        type =data['type']
-    except:
+    now_user = verif_user()
+    if now_user:
+        try:
+            data = json.loads(request.data)
+            codename = data['subject']
+            type = data['type']
+        except:
+            return jsonify(result='Error')
+        if type == 'singletask':
+            number = data['number']
+        else:
+            number = 'any'
+        if user:
+            subject = Subject.query.filter_by(codename=codename).first()
+            if number == 'any':
+                tasks = Task.query.filter_by(subject_id=subject.id).limit(20).all()
+            else:
+                tasks = Task.query.filter_by(subject_id=subject.id, number=number).limit(20).all()
+            if len(tasks) > 0:
+                num_rnd_task = random.randint(0, len(tasks)-1)
+                final_task = tasks[num_rnd_task]
+                content = Content.query.filter_by(id=final_task.id).first()
+                final_task = {'id': final_task.id, 'content': json.loads(content.content)}
+                return jsonify(final_task)
+            else:
+                return jsonify(result="Empty")
+    else:
         return jsonify(result='Error')
-    if type == 'singletask':
-        number = data['number']
-    else:
-        number = 'any'
-    if user:
-        subject = Subject.query.filter_by(codename=codename).first()
-        if number == 'any':
-            tasks = Task.query.filter_by(subject_id=subject.id).limit(20).all()
-        else:
-            tasks = Task.query.filter_by(subject_id=subject.id, number=number).limit(20).all()
-        if len(tasks) > 0:
-            num_rnd_task = random.randint(0, len(tasks)-1)
-            final_task = tasks[num_rnd_task]
-            content = Content.query.filter_by(id=final_task.id).first()
-            final_task = {'id': final_task.id, 'content': json.loads(content.content)}
-            return jsonify(final_task)
-        else:
-            return jsonify(result="Empty")
-    else:
-        return jsonify(result='Hello')
 
 
 @user.route('/get_answer', methods=['POST'])
 def get_answer():
-    data = json.loads(request.data)
+    now_user = verif_user()
+    if now_user:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            answers = data['answers']
+        except:
+            return jsonify(result='Error')
+        content = Content.query.filter_by(id=id).first()
+        right = False
+        print(json.loads(content.answers))
+        print(answers)
+        if json.loads(content.answers) == answers:
+            right = True
+        return jsonify(answer=right)
+    else:
+        return jsonify(result='Error')
 
-    return jsonify(result='Hello')
+
+@user.route('/set_report_task', methods=['POST'])
+def set_report_task():
+    user = verif_user()
+    if user:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            content = data['content']
+        except:
+            return jsonify(result='Error')
+        task = Task.query.filter_by(id=id).first()
+        if task:
+            report = Issue(content=content, solve=0, author_id=user.id, task_id=id)
+            db.session.add(report)
+            db.session.commit()
+            return jsonify(result='Success')
+    return jsonify(result='Error')
+
+
+@user.route('/get_description', methods=['POST'])
+def get_description():
+    now_user = verif_user()
+    if now_user:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+        except:
+            return jsonify(result='Error')
+        content = Content.query.filter_by(id=id).first()
+        return content.description
+    else:
+        return jsonify(result='Error')
 
 
 @user.route('/check_task', methods=['POST'])
