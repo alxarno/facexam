@@ -25,10 +25,39 @@ def verif_author(token='', user_code=''):
         if 'token' in session:
             if session['token'] == token:
                 return current_author
+        else:
+            code = data['code']
+            if code == ADMIN_KEY:
+                return current_author
     # else:
         # current_author =
     else:
         return False
+
+
+@author.route('/login', methods=['POST'])
+def login():
+    # if 'token' in session:
+    #     token = session['token']
+    #     user = User.query.filter_by(token=token).first()
+    #     if user:
+    #         author = Author.query.filter_by(user_id=user.id).first()
+    #         if author:
+    #             return jsonify(author.token)
+    try:
+        data = json.loads(request.data)
+        code = data['code']
+        u_token = data['u_token']
+    except:
+        return jsonify(result='Error')
+    user = User.query.filter_by(token=u_token).first()
+    if user:
+        author = Author.query.filter_by(user_id=user.id).first()
+        if author:
+            if code == AUTHOR_KEY:
+                session['session_author'] = author.token
+                return jsonify(author.token)
+    return jsonify(result='Error')
 
 
 @author.route('/get_info', methods=['POST'])
@@ -62,12 +91,14 @@ def my_subjects():
     author = verif_author()
     if author:
         final = []
-        subjects = Subject.query.all()
+        subjects = json.loads(author.subjects)
         for i in subjects:
-            final.append({
-                "codename": i.codename,
-                "name": i.name
-            })
+            subject = Subject.query.filter_by(codename=i).first()
+            if subject:
+                final.append({
+                        "codename": subject.codename,
+                        "name": subject.name
+                    })
         return jsonify(final)
     else:
         return jsonify(result='Error')
@@ -324,5 +355,22 @@ def query_task():
 def get_my_issues():
     author = verif_author()
     if author:
+        return jsonify(result='Success')
+    return jsonify(result='Error')
+
+
+@author.route('/set_availability', methods=['POST'])
+def availability():
+    author = verif_author()
+    if author:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            value = data['value']
+        except:
+            return jsonify(result='Error')
+        task = Task.query.filter_by(id=id).first()
+        task.open = value
+        db.session.commit()
         return jsonify(result='Success')
     return jsonify(result='Error')

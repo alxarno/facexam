@@ -22,7 +22,8 @@ def verif_user():
         data = json.loads(request.data)
         user_token = data['token']
         maybe_user = User.query.filter_by(token=user_token).first()
-        return maybe_user
+        if maybe_user:
+            return maybe_user
     except:
         return False
 
@@ -726,5 +727,14 @@ def get_mypage():
                  "preference": user_preference, "actions": user_last_actions,
                  "global_activ": user_global_static, "notifs": []}
         return jsonify(final)
+    else:
+        return jsonify(result='Error')
+
+
+@user.route('/get_my_settings', methods=['POST'])
+def get_settings():
+    user = verif_user()
+    if user:
+        return jsonify({'key': user.public_key})
     else:
         return jsonify(result='Error')

@@ -11,22 +11,23 @@ class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(255))
     pw_hash = db.Column(db.String(255))
-    # subjects = [subject.id, subject.id, ...]
+    # subjects = [subject.codename, subject.codename, ...]
     subjects = db.Column(db.String(255))
     user_id = db.Column(db.Integer(), nullable=False)
     tasks = db.relationship('Task', backref='author')
 
-    def __init__(self, subjects=json.dumps([]), password=None):
-        self.set_token()
+    def __init__(self, subjects=json.dumps([]), password=None, user_id=None):
+        self.set_token(user_id)
         self.set_password(password)
         self.subjects = subjects
+        self.user_id = user_id
 
     def set_password(self, password):
         self.pw_hash = generate_password_hash(password)
 
-    def set_token(self):
+    def set_token(self, id):
         t = time.time()
-        body = self.id.encode('utf8') + SECRET_KEY.encode('utf8')+str(t).encode('utf8')
+        body = str(id).encode('utf8') + SECRET_KEY.encode('utf8')+str(t).encode('utf8')
         self.token = hashlib.sha1(body).hexdigest()
 
     def check_password(self, password):

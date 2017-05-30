@@ -4,6 +4,8 @@ import json
 from .models import Subject, Task, Challenge
 from ..user.models import User
 from ..user.constans import ROLES
+from ..author.models import Author
+from ..admin.models import Admin
 from config import ADMIN_KEY, AUTHOR_KEY
 
 subject = Blueprint('subject', __name__, url_prefix='/api/subject')
@@ -13,27 +15,23 @@ def verif_author():
     try:
         data = json.loads(request.data)
         token = data['token']
-        current_admin = User.query.filter_by(token=token).first()
-        if current_admin:
-            if (current_admin.role == ROLES['ADMIN']) or (current_admin.role == ROLES['AUTHOR']):
-                if 'token' in session:
-                    if session['token'] == token:
-                        return True
-                    else:
-                        return False
+        current_author = Author.query.filter_by(token=token).first()
+        if current_author:
+            if 'token' in session:
+                if session['token'] == token:
+                    return current_author
                 else:
-                    try:
-                        user_code = data['code']
-                    except:
-                        return False
-                    if (user_code == ADMIN_KEY) or (user_code == AUTHOR_KEY):
-                        return True
-                    else:
-                        return False
-            else:
-                return False
+                    return False
         else:
-            return False
+            current_admin = Admin.query.filter_by(token=token).first()
+            if current_admin:
+                return current_admin
+                # print(session['admin_token'])
+                # if 'admin_token' in session:
+                #     if session['admin_token'] == token:
+                #         return current_admin
+                #     else:
+                #         return False
     except:
         return False
 
@@ -55,7 +53,7 @@ def get_subjects():
             result.append({'name': sub.name, 'codename': sub.codename})
         return jsonify(result)
     else:
-        return jsonify(result='error')
+        return jsonify(result='Error')
 
 
 @subject.route('/create_subject', methods=['POST'])

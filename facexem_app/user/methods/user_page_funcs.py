@@ -47,12 +47,14 @@ def user_get_page_info(user):
                     final_achiev.append(achiev)
         except:
             final_achiev = []
-    if user.role == 3:
-        roots = 'admin'
-    elif user == 2:
-        roots = 'author'
-    else:
-        roots = 'user'
+
+    #CHANGE!!!!
+    # if user.role == 3:
+    roots = 'admin'
+    # elif user == 2:
+    # roots = 'author'
+    # else:
+    # roots = 'user'
     finish = [{'photo': photo,
                'about': about,
                'background': background,

@@ -12,6 +12,7 @@ from ..subject.models import Task, Subject
 from ..extensions import db
 from .models import Admin
 from config import ADMIN_KEY, AUTHOR_KEY
+from ..author.models import Author
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -19,10 +20,13 @@ admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 def verif_admin():
     data = json.loads(request.data)
     token = data['token']
+    code = data['code']
     current_admin = Admin.query.filter_by(token=token).first()
     if current_admin:
-        if 'token' in session:
-            if session['token'] == token:
+            if 'token' in session:
+                if session['token'] == token:
+                    return current_admin
+            elif code == ADMIN_KEY:
                 return current_admin
     else:
         return False
@@ -153,3 +157,44 @@ def define_subject():
         return jsonify(result="Error: subject is not exist")
     else:
         return jsonify(result="Error: you aren't admin")
+
+
+@admin.route('/create-subject', methods=['POST'])
+def create_subject():
+    admin = verif_admin()
+    if admin:
+        try:
+            data = json.loads(request.data)
+            codename = data['codename']
+            name = data['name']
+            current_subject = Subject.query.filter_by(codename=codename).first()
+            if current_subject is None:
+                s = Subject(name=name, access=0, codename=codename)
+                db.session.add(s)
+                db.session.commit()
+                return jsonify(result='Success')
+        except:
+            None
+    return jsonify(resultl='Error')
+
+
+@admin.route('/create-author', methods=['POST'])
+def create_author():
+    admin = verif_admin()
+    if admin:
+        try:
+            data = json.loads(request.data)
+            yid = data['key']
+            password = data['pass']
+            subjects = data['subjects']
+            current_user = User.query.filter_by(public_key=yid).first()
+            if current_user:
+                current_author = Author.query.filter_by(user_id=current_user.id).first()
+                if current_author is None:
+                    a = Author(subjects=json.dumps(subjects), password=password, user_id=current_user.id)
+                    db.session.add(a)
+                    db.session.commit()
+                    return jsonify(result='Success')
+        except:
+            None
+    return jsonify(resultl='Error')

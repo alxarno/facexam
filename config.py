@@ -7,7 +7,7 @@ SUBJECT_FOLDER = './frontend/other/tasks'
 ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']
 SECRET_KEY = '27833c3ffb0ab43cf45564ca427fe630'
 ADMIN_KEY = '232323'
-AUTHOR_KEY = '232223'
+AUTHOR_KEY = '232323'
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
