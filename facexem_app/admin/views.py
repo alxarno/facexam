@@ -9,11 +9,12 @@ from flask import Blueprint, request, jsonify, session
 
 from ..user.models import User, TestUser, UserSubjects
 from ..user.constans import ROLES
-from ..subject.models import Task, Subject
+from ..subject.models import Task, Subject, Challenge
 from ..extensions import db
 from .models import Admin
 from config import ADMIN_KEY, AUTHOR_KEY, SUBJECT_FOLDER
 from ..author.models import Author
+from ..achievements.models import Achievement
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -219,3 +220,30 @@ def my_subjects():
         return jsonify(final)
     else:
         return jsonify(result='Error')
+
+
+@admin.route('/get_subject_info', methods=['POST'])
+def get_subject_info():
+    admin = verif_admin()
+    if admin:
+        try:
+            data = json.loads(request.data)
+            codename = data['codename']
+            subject = Subject.query.filter_by(codename=codename).first()
+            if subject:
+                tasks = Task.query.filter_by(subject_id=subject.id).count()
+                achievs = Achievement.query.filter_by(subject_id=subject.id).count()
+                challenges = Challenge.query.filter_by(subject_id=subject.id).count()
+                final = {
+                    "name": subject.name,
+                    "points": json.loads(subject.system_points),
+                    "access": subject.access,
+                    "codename": subject.codename,
+                    "task": tasks,
+                    "achievs": achievs,
+                    "chall": challenges
+                }
+                return jsonify(final)
+        except:
+            return jsonify(result="Error")
+    return jsonify(result="Error")
