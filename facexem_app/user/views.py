@@ -173,7 +173,7 @@ def delete_user():
 @user.route('/get_token', methods=['POST'])
 def get_token():
     if 'token' in session:
-        return jsonify(result=session['token'])
+        return jsonify(session['token'])
     else:
         return jsonify(result='Error')
 

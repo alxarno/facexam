@@ -10,5 +10,5 @@ class Achievement(db.Model):
     max = db.Column(db.Integer(), nullable=False)
     condition = db.Column(db.String(20))
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
-    author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
 

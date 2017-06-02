@@ -17,14 +17,13 @@ class User(db.Model):
     token = db.Column(db.String(40),  default='')
     pw_hash = db.Column(db.String(70),  default='')
     profile_done = db.Column(db.SmallInteger, default=0)
-    # role = db.Column(db.SmallInteger, default=ROLES['USER'])
+
     public_key = db.Column(db.String(32), default='')
 
     info_page = db.relationship('UserPage', backref='user')
     info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
-    achievements = db.relationship('Achievement', backref='user')
-    # tasks = db.relationship('Task', backref='user')
+
     reports = db.relationship('Issue', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):

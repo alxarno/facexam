@@ -9,7 +9,7 @@ from ..achievements.models import Achievement
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
 import os, shutil
-from config import SUBJECT_FOLDER
+from config import SUBJECT_FOLDER, UPLOAD_FOLDER
 
 author = Blueprint('author', __name__, url_prefix='/api/author')
 
@@ -22,8 +22,8 @@ def verif_author(token='', user_code=''):
         data = ''
     current_author = Author.query.filter_by(token=token).first()
     if current_author:
-        if 'token' in session:
-            if session['token'] == token:
+        if 'a_token' in session:
+            if session['a_token'] == token:
                 return current_author
         else:
             code = data['code']
@@ -37,26 +37,27 @@ def verif_author(token='', user_code=''):
 
 @author.route('/login', methods=['POST'])
 def login():
-    # if 'token' in session:
-    #     token = session['token']
-    #     user = User.query.filter_by(token=token).first()
-    #     if user:
-    #         author = Author.query.filter_by(user_id=user.id).first()
-    #         if author:
-    #             return jsonify(author.token)
-    try:
-        data = json.loads(request.data)
-        code = data['code']
-        u_token = data['u_token']
-    except:
-        return jsonify(result='Error')
-    user = User.query.filter_by(token=u_token).first()
-    if user:
-        author = Author.query.filter_by(user_id=user.id).first()
-        if author:
-            if code == AUTHOR_KEY:
-                session['session_author'] = author.token
+    if 'token' in session:
+        token = session['token']
+        user = User.query.filter_by(token=token).first()
+        if user:
+            author = Author.query.filter_by(user_id=user.id).first()
+            if author:
+                session['a_token'] = author.token
                 return jsonify(author.token)
+    # try:
+    #     data = json.loads(request.data)
+    #     code = data['code']
+    #     u_token = data['u_token']
+    # except:
+    #     return jsonify(result='Error')
+    # user = User.query.filter_by(token=u_token).first()
+    # if user:
+    #     author = Author.query.filter_by(user_id=user.id).first()
+    #     if author:
+    #         if code == AUTHOR_KEY:
+    #             session['session_author'] = author.token
+    #             return jsonify(author.token)
     return jsonify(result='Error')
 
 
@@ -94,10 +95,12 @@ def my_subjects():
         subjects = json.loads(author.subjects)
         for i in subjects:
             subject = Subject.query.filter_by(codename=i).first()
+            count = Task.query.filter_by(subject_id=subject.id).count()
             if subject:
                 final.append({
                         "codename": subject.codename,
-                        "name": subject.name
+                        "name": subject.name,
+                        "count": count
                     })
         return jsonify(final)
     else:
@@ -374,3 +377,94 @@ def availability():
         db.session.commit()
         return jsonify(result='Success')
     return jsonify(result='Error')
+
+
+@author.route('/achiev/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    data = dict(request.form)
+    author = verif_author(data['token'][0])
+    if author:
+        try:
+            name = data['name'][0]
+            content = data['content'][0]
+            type = data['type'][0]
+            count = data['count'][0]
+            condition = data["condition"][0]
+            codename = data['codename'][0]
+            print(name, content, type, condition, codename, file.filename)
+        except:
+            return jsonify(result="Error: not all data there are")
+        subject = Subject.query.filter_by(codename=codename).first()
+        if subject:
+            new_achiev = Achievement(name=name, content=content, type=type, max=int(count),
+                                     condition=json.dumps(condition), subject_id=subject.id, author_id=author.id)
+            db.session.add(new_achiev)
+            db.session.commit()
+            if file and file.filename:
+                file.save(os.path.join(UPLOAD_FOLDER, str(new_achiev.id)+'.png'))
+            return jsonify(result="Success")
+    return jsonify(result="Success")
+
+
+@author.route('/achiev/delete', methods=['POST'])
+def delete():
+    if verif_author():
+        data = json.loads(request.data)
+        try:
+            achievement_id = data['id']
+        except:
+            return jsonify(result="Error")
+        achiev = Achievement.query.filter_by(id=achievement_id)
+        if achiev.first():
+            achiev.delete()
+            db.session.commit()
+            return jsonify(result='Success')
+        else:
+            return jsonify(result='Error')
+    else:
+        return jsonify(result="Error")
+
+
+@author.route('/achiev/change', methods=['POST'])
+def change():
+    data = dict(request.form)
+    if verif_author(data['token'][0]):
+        try:
+            name = data['name'][0]
+            content = data['content'][0]
+            count = data['count'][0]
+            id = data['id'][0]
+        except:
+            return jsonify(result="Error: not all data there are")
+        achiev = Achievement.query.filter_by(id=id).first()
+        if achiev:
+            achiev.name = name
+            achiev.content = content
+            achiev.count = count
+            try:
+                file = request.files['file']
+                if file and file.filename:
+                    file.save(os.path.join(UPLOAD_FOLDER, str(achiev.id)+'.png'))
+                db.session.commit()
+                return jsonify(result="Success")
+            except:
+                db.session.commit()
+                return jsonify(result="Success")
+        else:
+            return jsonify(result="Error")
+    else:
+        return jsonify(result="Error")
+
+
+@author.route('/achiev/get_all', methods=['POST'])
+def get_all():
+    if verif_author():
+        final =[]
+        achievs = Achievement.query.all()
+        for i in achievs:
+            final.append({'id': i.id, 'name': i.name, 'content': i.content, 'type': i.type,
+                          'subject_id': i.subject_id, 'user_id': i.user_id})
+        return jsonify(final)
+    else:
+        return jsonify(result="Error: you're not author")

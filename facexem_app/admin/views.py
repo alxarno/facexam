@@ -2,6 +2,7 @@ import json
 import time
 import datetime
 import random
+import os
 
 
 from flask import Blueprint, request, jsonify, session
@@ -11,14 +12,15 @@ from ..user.constans import ROLES
 from ..subject.models import Task, Subject
 from ..extensions import db
 from .models import Admin
-from config import ADMIN_KEY, AUTHOR_KEY
+from config import ADMIN_KEY, AUTHOR_KEY, SUBJECT_FOLDER
 from ..author.models import Author
 
 admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
-def verif_admin():
-    data = json.loads(request.data)
+def verif_admin(data =''):
+    if data == '':
+        data = json.loads(request.data)
     token = data['token']
     code = data['code']
     current_admin = Admin.query.filter_by(token=token).first()
@@ -159,23 +161,6 @@ def define_subject():
         return jsonify(result="Error: you aren't admin")
 
 
-@admin.route('/create-subject', methods=['POST'])
-def create_subject():
-    admin = verif_admin()
-    if admin:
-        try:
-            data = json.loads(request.data)
-            codename = data['codename']
-            name = data['name']
-            current_subject = Subject.query.filter_by(codename=codename).first()
-            if current_subject is None:
-                s = Subject(name=name, access=0, codename=codename)
-                db.session.add(s)
-                db.session.commit()
-                return jsonify(result='Success')
-        except:
-            None
-    return jsonify(resultl='Error')
 
 
 @admin.route('/create-author', methods=['POST'])
@@ -198,3 +183,39 @@ def create_author():
         except:
             None
     return jsonify(resultl='Error')
+
+
+@admin.route('/create-subject', methods=['POST'])
+def create_subject():
+    data = dict(request.form)
+    data = json.loads(data['data'][0])
+    admin = verif_admin(data)
+    if admin:
+        file = request.files['file']
+        subject = Subject(name=data['name'], system_points=json.dumps(data['points']),
+                          access=0,codename=data['codename'])
+        db.session.add(subject)
+        db.session.commit()
+        if file and file.filename:
+            file.save(os.path.join(SUBJECT_FOLDER, str(data['codename']) + '.png'))
+        return jsonify(result='Success')
+    return jsonify(result='Error')
+
+
+@admin.route('/get_subjects', methods=['POST'])
+def my_subjects():
+    admin = verif_admin()
+    if admin:
+        final = []
+        subjects = Subject.query.all()
+        for i in subjects:
+            count = Task.query.filter_by(subject_id=i.id).count()
+            final.append({
+                    "codename": i.codename,
+                    "name": i.name,
+                    "count": count,
+                    "open": i.access
+                })
+        return jsonify(final)
+    else:
+        return jsonify(result='Error')
