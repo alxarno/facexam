@@ -11,6 +11,7 @@ class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(255))
     pw_hash = db.Column(db.String(255))
+    access = db.Column(db.SmallInteger, default=0)
     # subjects = [subject.codename, subject.codename, ...]
     subjects = db.Column(db.String(255))
     user_id = db.Column(db.Integer(), nullable=False)

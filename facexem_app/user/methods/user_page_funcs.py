@@ -1,5 +1,6 @@
 from ...subject.models import Subject
 from ...achievements.models import Achievement
+from ...author.models import Author
 from ..models import User
 import datetime
 import time
@@ -50,7 +51,10 @@ def user_get_page_info(user):
 
     #CHANGE!!!!
     # if user.role == 3:
-    roots = 'admin'
+    roots = 'user'
+    current_author = Author.query.filter_by(user_id=user.id)
+    if current_author:
+        roots = 'author'
     # elif user == 2:
     # roots = 'author'
     # else:

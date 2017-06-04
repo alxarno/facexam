@@ -7,7 +7,7 @@ import os
 
 from flask import Blueprint, request, jsonify, session
 
-from ..user.models import User, TestUser, UserSubjects
+from ..user.models import User, TestUser, UserSubjects, UserPage
 from ..user.constans import ROLES
 from ..subject.models import Task, Subject, Challenge
 from ..extensions import db
@@ -22,16 +22,17 @@ admin = Blueprint('admin', __name__, url_prefix='/api/admin')
 def verif_admin(data =''):
     if data == '':
         data = json.loads(request.data)
-    token = data['token']
-    code = data['code']
-    current_admin = Admin.query.filter_by(token=token).first()
-    if current_admin:
-            if 'token' in session:
-                if session['token'] == token:
+    try:
+        token = data['token']
+        code = data['code']
+        current_admin = Admin.query.filter_by(token=token).first()
+        if current_admin:
+                if 'token' in session:
+                    if session['token'] == token:
+                        return current_admin
+                elif code == ADMIN_KEY:
                     return current_admin
-            elif code == ADMIN_KEY:
-                return current_admin
-    else:
+    except:
         return False
 
 
@@ -247,3 +248,98 @@ def get_subject_info():
         except:
             return jsonify(result="Error")
     return jsonify(result="Error")
+
+
+@admin.route('/save_subject_info', methods=['POST'])
+def save_subject_info():
+    data = dict(request.form)
+    data = json.loads(data['data'][0])
+    admin = verif_admin(data)
+    if admin:
+        # try:
+            name = data['name']
+            access = data['access']
+            codename = data['codename']
+            subject = Subject.query.filter_by(codename=codename).first()
+            if subject:
+                subject.name = name
+                subject.access = access
+                db.session.commit()
+                if data['file']:
+                    file = request.files['file']
+                    if file and file.filename:
+                        file.save(os.path.join(SUBJECT_FOLDER, str(data['codename']) + '.png'))
+                return jsonify(result='Success')
+        # except:
+        #     return jsonify(result='Error')
+    else:
+        return jsonify(result='Error')
+
+
+@admin.route('/get_all_authors', methods=['POST'])
+def get_all_authors():
+    admin = verif_admin()
+    if admin:
+        authors = Author.query.all()
+        final = []
+        user_id = []
+        for i in authors:
+            user_id.append(i.user_id)
+            final.append({
+                "tasks": len(i.tasks),
+                "access": i.access
+            })
+        all = db.session.query(User, UserPage).join(UserPage).filter(User.id.in_(user_id)).all()
+        for i in range(len(authors)):
+            final[i]['name'] = all[i].User.name
+            final[i]['photo'] = all[i].UserPage.photo+'.png'
+            final[i]['id'] = all[i].User.id
+        return jsonify(final)
+    return jsonify(resilt='Error')
+
+
+@admin.route('/get_author_info', methods=['POST'])
+def get_author_info():
+    admin = verif_admin()
+    if admin:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            user = User.query.filter_by(id=id).first()
+            if user:
+                user_page = UserPage.query.filter_by(user_id=user.id).first()
+                author = Author.query.filter_by(user_id=user.id).first()
+                final = {
+                    "name": user.name,
+                    'email': user.email,
+                    'vk': user.vk_id,
+                    'key': user.public_key,
+                    'access': author.access,
+                    'subjects': json.loads(author.subjects),
+                    'city': user_page.city
+                }
+                return jsonify(final)
+        except:
+            return jsonify(result='Error')
+    return jsonify(result='Error')
+
+
+@admin.route('/set_author_info', methods=['POST'])
+def set_author_info():
+    admin = verif_admin()
+    if admin:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            data = data['data']
+            access = data['access']
+            subjects = data['subjects']
+            author = Author.query.filter_by(user_id=id).first()
+            if author:
+                author.access = access
+                author.subjects = json.dumps(subjects)
+                db.session.commit()
+                return jsonify(request='Success')
+        except:
+            return jsonify(result='Error')
+    return jsonify(result='Error')
