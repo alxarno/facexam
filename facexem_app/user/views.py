@@ -1,16 +1,13 @@
-import datetime
-import time
-import json
-import random
-import smtplib
+from datetime import datetime
+import random, hashlib, time, json, smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
-from .models import User, TestUser, UserPage, UserSubjects, UserActivity
+from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content, Issue
+from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks
 from .methods import somefuncs, user_page_funcs, subject_page_funcs
 from ..achievements.models import Achievement
 
@@ -125,10 +122,9 @@ def done_create_page():
                     continue
                 subject = Subject.query.filter_by(codename=i).first()
                 if subject:
-                    user_subject = UserSubjects(subject_codename=i, passed_lections=json.dumps([]),\
-                                                 passed_tests=json.dumps([]), experience=0, activity=json.dumps([]),\
-                                                 points_of_tests=0, user=user, now_challenge=json.dumps([]))
-                    db.session.add(user_subject)
+                    user_static_subject = SubjectStatic(subject_codename=i, user=user, date_reload=0,\
+                                                        test_points=0, last_random_task_time=0, best_session_list=0)
+                    db.session.add(user_static_subject)
                     count += 1
             user.profile_done = 1
             db.session.commit()
@@ -417,10 +413,31 @@ def get_task():
             number = 'any'
         if user:
             subject = Subject.query.filter_by(codename=codename).first()
+            solve_task_array = []
+            users_solve_tasks = db.session.query(TaskSolve).filter(TaskSolve.user_id == now_user.id)
+            users_solve_tasks = users_solve_tasks.join(Task, Task.id == TaskSolve.task_id)
+            users_solve_tasks = users_solve_tasks.join(Subject, Subject.id == Task.subject_id).all()
+            for taskSolve in users_solve_tasks:
+                solve_task_array.append(taskSolve.task_id)
             if number == 'any':
-                tasks = Task.query.filter_by(subject_id=subject.id).limit(20).all()
+                tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                                                      ~Task.id.in_(solve_task_array)).limit(20).all()
+                if len(tasks) == 0:
+                    if len(solve_task_array)==0:
+                        return jsonify(result="Empty")
+                    tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                                            Task.id != solve_task_array[len(solve_task_array)-1]).limit(20).all()
             else:
-                tasks = Task.query.filter_by(subject_id=subject.id, number=number).limit(20).all()
+                tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                                                      Task.number == number,
+                                                      ~Task.id.in_(solve_task_array)).limit(20).all()
+                if len(tasks) == 0:
+                    if len(solve_task_array)==0:
+                        return jsonify(result="Empty")
+                    tasks = db.session.query(Task).filter(
+                        Task.subject_id == subject.id,
+                        Task.number == number,
+                        Task.id != solve_task_array[len(solve_task_array)-1]).limit(20).all()
             if len(tasks) > 0:
                 num_rnd_task = random.randint(0, len(tasks)-1)
                 final_task = tasks[num_rnd_task]
@@ -441,17 +458,57 @@ def get_answer():
             data = json.loads(request.data)
             id = data['id']
             answers = data['answers']
+            user_time = data['time']
+            type = data['type']
+            session_key = data['session_key']
         except:
             return jsonify(result='Error')
         content = Content.query.filter_by(id=id).first()
         right = False
-        print(json.loads(content.answers))
-        print(answers)
-        if json.loads(content.answers) == answers:
+        solve = 0
+        all_time = time.time()
+        curent_answer = json.loads(content.answers)
+        count= 0
+        for i in range(len(answers)):
+            if answers[i] == curent_answer[i]:
+                count += 1
+        if count >= 1:
             right = True
-        return jsonify(answer=right)
-    else:
-        return jsonify(result='Error')
+            solve = 1
+        #type
+        if type == 'singletask':
+            type = 1
+        elif type == 'randomtask':
+            type = 2
+        session_task = SessionTasks.query.filter_by(key=session_key, user_id=now_user.id).first()
+        if session_task:
+            task_solve = TaskSolve(time=user_time, count=count, solve=solve, alltime=all_time,
+                                  user_id=now_user.id, task_id=content.task_id, type=type, session_id=session_task.id)
+            db.session.add(task_solve)
+            db.session.commit()
+            # for i in range
+            return jsonify(answer=right)
+    return jsonify(result='Error')
+
+
+@user.route('/session_start', methods=['POST'])
+def set_session_start():
+    user = verif_user()
+    if user:
+        try:
+            data = json.loads(request.data)
+            codename = data['subject']
+            subject = Subject.query.filter_by(codename=codename).first()
+            if subject:
+                time_now = time.time()
+                key = hashlib.md5(str(User.id).encode('utf8')+str(time_now).encode('utf8')).hexdigest()
+                session = SessionTasks(date=time_now, user_id=user.id, key=key, subject_id=subject.id)
+                db.session.add(session)
+                db.session.commit()
+                return jsonify(key)
+        except:
+            return jsonify(result='Error')
+    return jsonify(result='Error')
 
 
 @user.route('/set_report_task', methods=['POST'])
@@ -509,8 +566,9 @@ def check_task():
 
         if right > 0:
             sent = True
-            somefuncs.set_activity_user(user_activities, user, 'task')
-            somefuncs.reg_achievements_progress('task', user)
+            # task_solve = TaskSolve()
+            # somefuncs.set_activity_user(user_activities, user, 'task')
+            # somefuncs.reg_achievements_progress('task', user)
         else:
             sent = False
         return jsonify({'user_answer': answer, 'right': sent, 'description': task.description})
@@ -565,88 +623,88 @@ def global_static():
         return jsonify(result="Error")
 
 
-@user.route('/get_test', methods=['POST'])
-def get_test():
-    now_user = verif_user()
-    if now_user:
-        data = json.loads(request.data)
-        test = []
-        try:
-            info_counts = data['counts']
-            subject = data['subject_codename']
-        except:
-            return jsonify(result="Error: havent counts or subject_codename")
-        subject = Subject.query.filter_by(codename=subject).first()
-        if subject:
-            for count in info_counts:
-                now_count_tasks = int(info_counts[count]['count'])
-                tasks_id = []
-                limit = 0
-                for g in range(0, now_count_tasks):
-                    task_count = int(Task.query.filter_by(subject_id=subject.id).count())
-                    random1 = random.random()
-                    random_id_task = round(task_count*random1)
-                    if random_id_task not in tasks_id:
-                        rt = Task.query.filter_by(id=random_id_task, number=count, subject_id=subject.id).first()
-                        if rt:
-                            tasks_id.append(random_id_task)
-                            test.append({"id": rt.id, "content": rt.content})
-                    else:
-                        if limit <= 3:
-                            now_count_tasks += 1
-                            limit += 1
-            return jsonify(test)
-        else:
-            return jsonify(result="Error: bad subject_codename")
-    else:
-        return jsonify(result="Error")
+# @user.route('/get_test', methods=['POST'])
+# def get_test():
+#     now_user = verif_user()
+#     if now_user:
+#         data = json.loads(request.data)
+#         test = []
+#         try:
+#             info_counts = data['counts']
+#             subject = data['subject_codename']
+#         except:
+#             return jsonify(result="Error: havent counts or subject_codename")
+#         subject = Subject.query.filter_by(codename=subject).first()
+#         if subject:
+#             for count in info_counts:
+#                 now_count_tasks = int(info_counts[count]['count'])
+#                 tasks_id = []
+#                 limit = 0
+#                 for g in range(0, now_count_tasks):
+#                     task_count = int(Task.query.filter_by(subject_id=subject.id).count())
+#                     random1 = random.random()
+#                     random_id_task = round(task_count*random1)
+#                     if random_id_task not in tasks_id:
+#                         rt = Task.query.filter_by(id=random_id_task, number=count, subject_id=subject.id).first()
+#                         if rt:
+#                             tasks_id.append(random_id_task)
+#                             test.append({"id": rt.id, "content": rt.content})
+#                     else:
+#                         if limit <= 3:
+#                             now_count_tasks += 1
+#                             limit += 1
+#             return jsonify(test)
+#         else:
+#             return jsonify(result="Error: bad subject_codename")
+#     else:
+#         return jsonify(result="Error")
 
 
-@user.route('/check_test', methods=['POST'])
-def check_test():
-    now_user = verif_user()
-    points = 0
-    if now_user:
-        data = json.loads(request.data)
-        try:
-            answers = data['answers']
-            type = data['type']
-            subject_codename = data['subject_code']
-        except:
-            return jsonify(result="Error")
-        for i in answers:
-            now_id = i.id
-            type = i.type
-            answer = i.answer
-            task = Task.query.filter_by(id=now_id).first()
-            try:
-                real_answer = json.loads(task.answer)
-            except:
-                return jsonify(result="Error")
-            if task:
-                if type == 'hard':
-                    for j in range(0, len(answer)-1):
-                        if answer[j] == real_answer[j]:
-                            points += 1
-                else:
-                    if answer[0] == real_answer[0]:
-                        points += 1
-        if type == 'usual':
-            subject = UserSubjects.query.filter_by(subject_codename=subject_codename).first()
-            real_subject = Subject.query.filter_by(codename=subject_codename).first()
-            if subject and real_subject:
-                tests = json.loads(subject.passed_tests)
-                tests[len(tests)-1] = 0
-                for i in range(1, len(tests)-1, -1):
-                    tests[i] = tests[i-1]
-                system_points = json.loads(real_subject.system_points)
-                points_100 = system_points[str(points)]
-                tests[0] = points_100
-                subject.points_of_tests = tests
-                db.session.dommit()
-        return jsonify(result=points)
-    else:
-        return jsonify(result='Error')
+# @user.route('/check_test', methods=['POST'])
+# def check_test():
+#     now_user = verif_user()
+#     points = 0
+#     if now_user:
+#         data = json.loads(request.data)
+#         try:
+#             answers = data['answers']
+#             type = data['type']
+#             subject_codename = data['subject_code']
+#         except:
+#             return jsonify(result="Error")
+#         for i in answers:
+#             now_id = i.id
+#             type = i.type
+#             answer = i.answer
+#             task = Task.query.filter_by(id=now_id).first()
+#             try:
+#                 real_answer = json.loads(task.answer)
+#             except:
+#                 return jsonify(result="Error")
+#             if task:
+#                 if type == 'hard':
+#                     for j in range(0, len(answer)-1):
+#                         if answer[j] == real_answer[j]:
+#                             points += 1
+#                 else:
+#                     if answer[0] == real_answer[0]:
+#                         points += 1
+#         if type == 'usual':
+#             subject = UserSubjects.query.filter_by(subject_codename=subject_codename).first()
+#             real_subject = Subject.query.filter_by(codename=subject_codename).first()
+#             if subject and real_subject:
+#                 tests = json.loads(subject.passed_tests)
+#                 tests[len(tests)-1] = 0
+#                 for i in range(1, len(tests)-1, -1):
+#                     tests[i] = tests[i-1]
+#                 system_points = json.loads(real_subject.system_points)
+#                 points_100 = system_points[str(points)]
+#                 tests[0] = points_100
+#                 subject.points_of_tests = tests
+#                 db.session.dommit()
+#         return jsonify(result=points)
+#     else:
+#         return jsonify(result='Error')
 
 
 @user.route('/get_challenge', methods=['POST'])
@@ -706,10 +764,20 @@ def get_subject_activity():
             subject_codename = data['subject']
         except:
             return jsonify(result="Error")
-        result = subject_page_funcs.get_subject_activity(now_user, subject_codename)
-        return jsonify(result)
-    else:
-        return 'Error'
+        subject = Subject.query.filter_by(codename=subject_codename).first()
+        if subject:
+            result = subject_page_funcs.get_subject_activity(now_user, subject)
+            print(subject_page_funcs.task_info(now_user, subject))
+            return jsonify(result)
+    return 'Error'
+
+
+@user.route('/get_subject', methods=['POST'])
+def get_subject():
+    now_user = verif_user()
+    if now_user:
+        return jsonify({})
+    return jsonify(result='Error')
 
 
 @user.route('/get_mypage', methods=['POST'])

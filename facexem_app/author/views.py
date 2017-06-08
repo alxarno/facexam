@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 import json
 import time
-from ..user.models import User, TestUser, UserPage, UserSubjects, UserActivity
+from ..user.models import User, TestUser, UserPage,  UserActivity
 from ..extensions import db
 from ..subject.models import Subject, Task, Challenge, Content, Issue
 from .models import Author

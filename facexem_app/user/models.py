@@ -21,8 +21,11 @@ class User(db.Model):
     public_key = db.Column(db.String(32), default='')
 
     info_page = db.relationship('UserPage', backref='user')
-    info_subjects = db.relationship('UserSubjects', backref='user')
     activity = db.relationship('UserActivity', backref='user')
+    task_solve = db.relationship('TaskSolve', backref='user')
+    test_solve = db.relationship('TestSolve', backref='user')
+    sessions_task = db.relationship('SessionTasks', backref='user')
+    subjects_statics = db.relationship('SubjectStatic', backref='user')
 
     reports = db.relationship('Issue', backref='user')
 
@@ -120,24 +123,19 @@ class UserPage(db.Model):
         return '<UserPage %r>' % self.user_id
 
 
-class UserSubjects(db.Model):
-    __tablename__ = "user_subjects"
-    id = db.Column(db.Integer, primary_key=True)
-    subject_codename = db.Column(db.String(64))
-    passed_lections = db.Column(db.String(512), default=u'')
-    passed_tests = db.Column(db.String(512), default=u'')
-    points_of_tests = db.Column(db.Integer, default=0)
-    tasks = db.Column(db.Integer, default=0)
-    experience = db.Column(db.Integer, default=0)
-    activity = db.Column(db.String(512), default=u'')
-    # {'date': 23,...}
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
-    now_challenge = db.Column(db.String(128))
-    # now_challenge struct - [id, now result, close?]
 
+class SubjectStatic(db.Model):
+    __tablename__ = "subjects_static"
+    id = db.Column(db.Integer, primary_key=True)
+    subject_codename = db.Column(db.String(30))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    date_reload = db.Column(db.Integer())
+    test_points = db.Column(db.Integer())
+    last_random_task_time = db.Column(db.Integer())
+    best_session_list = db.Column(db.Integer())
 
     def __repr__(self):
-        return '<UserSubjects %r>' % self.user_id
+        return '<SubjectStatic %r>' % self.id
 
 
 class UserActivity(db.Model):

@@ -1,23 +1,23 @@
-from ...subject.models import Subject
+from ...subject.models import Subject, TaskSolve, TestSolve, Task
 from ...achievements.models import Achievement
 from ...author.models import Author
 from ..models import User
 import datetime
 import time
 import json
+from ...extensions import db
+from sqlalchemy import desc
 
 
 
 
 def user_get_subjects(user):
-    subjects = user.info_subjects
+    subjects = user.subjects_statics
     result = []
     for s in subjects:
         real_subject = Subject.query.filter_by(codename=s.subject_codename).first()
         if real_subject:
-            subject_count = s.points_of_tests
-            if subject_count == '':
-                subject_count = 0
+            subject_count = 0
             subject = {'link': s.subject_codename,
                        'subjectName': real_subject.name,
                        'image': 'subject_pic/' + s.subject_codename,
@@ -52,7 +52,7 @@ def user_get_page_info(user):
     #CHANGE!!!!
     # if user.role == 3:
     roots = 'user'
-    current_author = Author.query.filter_by(user_id=user.id)
+    current_author = Author.query.filter_by(user_id=user.id).first()
     if current_author:
         roots = 'author'
     # elif user == 2:
@@ -77,24 +77,29 @@ def user_get_activity(user):
     final = []
     # creating array with last 7 days dates
     dates = []
+    unix_time = []
     i = 6
     while i >= 0:
         date = now_date - datetime.timedelta(days=i)
         dates.append(str(date))
+        unix_time.append(time.mktime(date.timetuple()))
         i -= 1
-
-    user_activities = user.activity
-    # test, is day of activity in last 7 days
-    for day in user_activities:
-        if str(day.date) in dates:
-            print(day.date)
-            final.append(day.lections)
-    if len(final) < 7:
-        times = len(final)
-        while times < 7:
-            final.append(0)
-            times += 1
-    final = list(reversed(final))
+    finals_querys = []
+    for i in range(7):
+        if i < 6:
+            query = db.session.query(TaskSolve).filter(
+                TaskSolve.alltime >= unix_time[i],
+                TaskSolve.alltime <= unix_time[i+1],
+                TaskSolve.solve == 1,
+                TaskSolve.user_id == user.id).all()
+        else:
+            query = db.session.query(TaskSolve).filter(
+                TaskSolve.alltime >= unix_time[i],
+                TaskSolve.solve == 1,
+                TaskSolve.user_id == user.id).all()
+        finals_querys.append(query)
+    for i in finals_querys:
+        final.append(len(i))
     k = 0
     for date in dates:
         dayDate = datetime.datetime.strptime(date, "%Y-%m-%d").date()
@@ -112,70 +117,70 @@ def user_get_activity(user):
 def user_get_preference(user):
     names = []
     values = []
-    user_subjects = user.info_subjects
+    user_subjects = user.subjects_statics
     for sub in user_subjects:
         subject = Subject.query.filter_by(codename=sub.subject_codename).first()
         names.append(subject.name)
-        try:
-            values.append(int(sub.tasks) * (int(sub.points_of_tests) / 100))
-        except:
-            values.append(0)
+        # try:
+        # tasks = db.session.query(TaskSolve).filter(TaskSolve.user_id == user.id)
+        # tasks = tasks.join(Task, Task.subject_id == subject.id)
+        # tasks = tasks.all()
+        tasks = db.session.query(Subject, Task, TaskSolve).filter(Subject.codename == sub.subject_codename)
+        tasks = tasks.join(Task)
+        tasks = tasks.join(TaskSolve).filter(
+            TaskSolve.user_id == user.id).all()
+        values.append(len(tasks))
     return [values, names]
 
 
 def user_get_last_actions(user):
+    query_task = db.session.query(TaskSolve).order_by(TaskSolve.alltime.desc()).limit(7).all()
+    some_query = db.session.query(TestSolve).order_by(TestSolve.alltime.desc()).limit(7).all()
+    all=[]
+    for i in query_task:
+        all.append({'type': 'task', "content": i})
+    for i in some_query:
+        all.append({'type': 'test', "content": i})
+    for i in range(len(all)):
+        for y in range(len(all)):
+            if i != y:
+                if all[i]['content'].alltime > all[y]['content'].alltime:
+                    c = all[i]
+                    all[i] = all[y]
+                    all[y] = c
+
     final = []
-    actions = user.info_page[0].last_actions
-    if actions != 0:
-        try:
-            actions = json.loads(actions)
-        except:
-            actions=[]
-    else:
-        actions = []
-    if not actions:
-        actions = []
-    for action in actions:
-        subject = Subject.query.filter_by(id=action['subject']).first()
-        if action['type'] == "tasks":
-            final.append({"text": str(action['count']) + " заданий по предмету " + subject.name,
-                          "img": "http://127.0.0.1:9999/icon/test-tube"})
-        elif action['type'] == 'test':
-            if action['test_type'] == 'usually':
-                final.append({"text": "Обычный тест по предмету " + subject.name + \
-                                      " с " + str(action['count']) + " баллами из 100",
-                              "img": "http://127.0.0.1:9999/icon/flask"})
-            elif action['test_type'] == 'custom':
-                final.append({"text": "Индивидуальный тест по предмету " + subject.name + \
-                                      " с " + str(action['count']) + " первичными баллами",
-                              "img": "http://127.0.0.1:9999/icon/flask_1"})
+    for i in all[:6]:
+        if i['type'] == 'task':
+            task = db.session.query(Task, Subject).filter(Task.id == i['content'].task_id)
+            subject = task.join(Subject, Subject.id == Task.subject_id)
+            records = subject.all()
+            for task, subject in records:
+                if i['content'].solve == 0:
+                    text = 'Не решено'
+                else:
+                    text="Решено"
+                final.append({
+                    "text": text+ " задание по предмету "+subject.name,
+                    "img": "/icon/test-tube"
+                })
+
     return final
 
 
 def user_get_global_static(user):
-    info = user.info_page[0]
-    subjects = user.info_subjects
+    subjects = user.subjects_statics
+    middle = 0
+    tasks = 0
+    test = 0
     if subjects:
-        count = 1
-        sum = 0
-        for subject in subjects:
-            try:
-                sum += int(subject.points_of_tests)
-            except:
-                sum += 0
-            count += 1
-        middle_point = sum / count
-        try:
-            tasks = int(info.tasks)
-        except:
-            tasks = 0
-        try:
-            tests = int(info.tasks)
-        except:
-            tests = 0
-        result = {'middle': middle_point,
+        tasks += TaskSolve.query.filter_by(solve=1).count()
+        test += TestSolve.query.filter_by(solve=1).count()
+        for i in subjects:
+            middle += i.test_points
+        result = {'middle': middle,
                   'tasks': tasks,
-                  'tests': tests}
+                  'tests': test}
         return result
     else:
         return 0

@@ -114,7 +114,6 @@ def main():
     if 'token' in session:
         user = User.query.filter_by(token=session['token']).first()
         if user:
-            print(user.profile_done)
             if user.profile_done == 0:
                 return redirect(url_for('create_profile'))
             else:

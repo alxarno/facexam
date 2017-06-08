@@ -11,6 +11,9 @@ class Subject(db.Model):
     tasks = db.relationship('Task', backref='subject')
     achievements = db.relationship('Achievement', backref='subject')
     challenges = db.relationship('Challenge', backref='subject')
+    sessions = db.relationship('SessionTasks', backref='subject')
+
+
 
 
 class Task(db.Model):
@@ -22,6 +25,7 @@ class Task(db.Model):
     author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
     content = db.relationship('Content', backref='task')
     issues = db.relationship('Issue', backref='issue')
+    solve_task = db.relationship('TaskSolve', backref='task')
 
 
 class Content(db.Model):
@@ -52,3 +56,41 @@ class Issue(db.Model):
     solve = db.Column(db.Integer())
     author_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
+
+
+class TaskSolve(db.Model):
+    __tablename__ = 'task_solve'
+    id = db.Column(db.Integer, primary_key=True)
+    time = db.Column(db.Integer())
+    count = db.Column(db.Integer())
+    solve = db.Column(db.Integer())
+    # type : 1=single, 2=random, 3=test
+    type = db.Column(db.Integer())
+    session_id = db.Column(db.Integer(), db.ForeignKey('session_tasks.id'))
+    # date = db.Column(db.DateTime(timezone=False))
+    alltime = db.Column(db.Integer())
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
+
+
+class SessionTasks(db.Model):
+    __tablename__ = 'session_tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Integer())
+    subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+    key = db.Column(db.String(50))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    task_solve_id = db.relationship('TaskSolve', backref='task_solve')
+
+
+class TestSolve(db.Model):
+    __tablename__ = 'test_solve'
+    id = db.Column(db.Integer, primary_key=True)
+    time = db.Column(db.Integer())
+    count = db.Column(db.Integer())
+    solve = db.Column(db.Integer())
+    subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+    alltime = db.Column(db.Integer())
+    date = db.Column(db.DateTime(timezone=False))
+    tasks = db.Column(db.String(128))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))

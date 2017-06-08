@@ -7,9 +7,9 @@ import os
 
 from flask import Blueprint, request, jsonify, session
 
-from ..user.models import User, TestUser, UserSubjects, UserPage
+from ..user.models import User, TestUser,  UserPage
 from ..user.constans import ROLES
-from ..subject.models import Task, Subject, Challenge
+from ..subject.models import Task, Subject, Challenge, TaskSolve
 from ..extensions import db
 from .models import Admin
 from config import ADMIN_KEY, AUTHOR_KEY, SUBJECT_FOLDER
@@ -112,36 +112,36 @@ def get_task():
             return jsonify(result='Error: you are not admin ')
 
 
-@admin.route('/smth', methods=['POST'])
-def smth():
-    if verif_admin():
-        data = json.loads(request.data)
-        token = data['token']
-        subject = data['subject']
-        now_time = time.localtime()
-        now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
-        # creating array with last 7 days dates
-        dates = []
-        final = {}
-        i = 6
-        while i >= 0:
-            date = now_date - datetime.timedelta(days=i)
-            dates.append(str(date))
-            i -= 1
-        for i in dates:
-            final[i] = random.randint(0, 100)
-        current_admin = User.query.filter_by(token=token).first()
-        real_subjects = current_admin.info_subjects
-        r_subject = 0
-        for j in real_subjects:
-            if j.subject_codename == subject:
-                r_subject = j
-        sub = UserSubjects.query.filter_by(id=r_subject.id).first()
-        sub.activity = json.dumps(final)
-        db.session.commit()
-        return jsonify(result="Success")
-    else:
-        return jsonify(result="Error")
+# @admin.route('/smth', methods=['POST'])
+# def smth():
+#     if verif_admin():
+#         data = json.loads(request.data)
+#         token = data['token']
+#         subject = data['subject']
+#         now_time = time.localtime()
+#         now_date = datetime.date(now_time.tm_year, now_time.tm_mon, now_time.tm_mday)
+#         # creating array with last 7 days dates
+#         dates = []
+#         final = {}
+#         i = 6
+#         while i >= 0:
+#             date = now_date - datetime.timedelta(days=i)
+#             dates.append(str(date))
+#             i -= 1
+#         for i in dates:
+#             final[i] = random.randint(0, 100)
+#         current_admin = User.query.filter_by(token=token).first()
+#         real_subjects = current_admin.info_subjects
+#         r_subject = 0
+#         for j in real_subjects:
+#             if j.subject_codename == subject:
+#                 r_subject = j
+#         sub = UserSubjects.query.filter_by(id=r_subject.id).first()
+#         sub.activity = json.dumps(final)
+#         db.session.commit()
+#         return jsonify(result="Success")
+#     else:
+#         return jsonify(result="Error")
 
 
 @admin.route('/define-subject', methods=['POST'])
@@ -163,8 +163,6 @@ def define_subject():
         return jsonify(result="Error: you aren't admin")
 
 
-
-
 @admin.route('/create-author', methods=['POST'])
 def create_author():
     admin = verif_admin()
@@ -172,13 +170,12 @@ def create_author():
         try:
             data = json.loads(request.data)
             yid = data['key']
-            password = data['pass']
             subjects = data['subjects']
             current_user = User.query.filter_by(public_key=yid).first()
             if current_user:
                 current_author = Author.query.filter_by(user_id=current_user.id).first()
                 if current_author is None:
-                    a = Author(subjects=json.dumps(subjects), password=password, user_id=current_user.id)
+                    a = Author(subjects=json.dumps(subjects), user_id=current_user.id)
                     db.session.add(a)
                     db.session.commit()
                     return jsonify(result='Success')
@@ -343,3 +340,13 @@ def set_author_info():
         except:
             return jsonify(result='Error')
     return jsonify(result='Error')
+
+
+@admin.route('/delete_task_solve', methods=['POST'])
+def delete_task():
+    admin = verif_admin()
+    if admin:
+        TaskSolve.query.delete()
+        db.session.commit()
+    return jsonify(result='Hello')
+
