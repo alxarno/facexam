@@ -767,16 +767,25 @@ def get_subject_activity():
         subject = Subject.query.filter_by(codename=subject_codename).first()
         if subject:
             result = subject_page_funcs.get_subject_activity(now_user, subject)
-            print(subject_page_funcs.task_info(now_user, subject))
+            subject_page_funcs.task_info(now_user, subject)
             return jsonify(result)
     return 'Error'
 
 
-@user.route('/get_subject', methods=['POST'])
-def get_subject():
+@user.route('/get_my_subject', methods=['POST'])
+def get_my_subject():
     now_user = verif_user()
     if now_user:
-        return jsonify({})
+        data = json.loads(request.data)
+        try:
+            subject_codename = data['subject']
+        except:
+            return jsonify(result='Error')
+        subject = Subject.query.filter_by(codename=subject_codename).first()
+        if subject:
+            task_info = subject_page_funcs.task_info(now_user, subject)
+            activity = subject_page_funcs.get_subject_activity(now_user, subject)
+        return jsonify({"task_info": task_info, "activity": activity})
     return jsonify(result='Error')
 
 
