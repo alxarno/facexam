@@ -88,6 +88,8 @@ class TestSolve(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer())
     count = db.Column(db.Integer())
+    # type : 1=default, 2=personal
+    type = db.Column(db.Integer())
     solve = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
     alltime = db.Column(db.Integer())

@@ -15,7 +15,7 @@ def update_subject_static(user, subject):
         # update_middle_test_count
         query = db.session.query(Subject, Task, TestSolve).filter(Subject.codename == subject.codename)
         query = query.join(Task)
-        query = query.join(TestSolve).filter(TestSolve.user_id == user.id).all()
+        query = query.join(TestSolve).filter(TestSolve.user_id == user.id, TestSolve.type == 1).all()
         sum = 0
         count = len(query)
         for i in query:
@@ -70,10 +70,13 @@ def update_subject_static(user, subject):
                 table_future_task[t.number - 1]['unsolve'] += 1
 
         for y in table_future_task:
-            if y['solve'] != 0 :
-                y['procent'] = round(y['unsolve'] / y['solve'], 2)
-                if y['procent'] < 0.3: y['color'] ='green'
-                elif y['procent'] >= 0.7 : y['color'] = 'red'
+            if y['unsolve'] != 0:
+                y['procent'] = round((y['solve']/2) / y['unsolve'], 2)
+                if y['procent']>1: y['procent'] = 1
+            elif y['solve'] != 0: y['procent'] = 1
+            else : y['procent'] = 0
+            if y['procent'] < 0.3: y['color'] ='red'
+            elif y['procent'] >= 0.7 : y['color'] = 'green'
         # sort
         for f in range(len(table_future_task)):
             for x in range(len(table_future_task)):
@@ -81,11 +84,17 @@ def update_subject_static(user, subject):
                     c = table_future_task[f]
                     table_future_task[f] = table_future_task[x]
                     table_future_task[x] = c
+        last = {}
+        last_hardest_tasks = json.loads(subject_stat.static_tasks_hardest)
+        for i in last_hardest_tasks:
+            last[i['num']] = i['procent']
+
         #update values
         subject_stat.test_points = test_balls
         subject_stat.last_random_task_time = time_tasks
         subject_stat.best_session_list = finish
         subject_stat.date_reload = time.time()
+        subject_stat.last_tasks_hardest = json.dumps(last)
         subject_stat.static_tasks_hardest = json.dumps(table_future_task)
         subject_stat.time_for_update = round(time.time()-big_time, 4)
         db.session.commit()
@@ -95,13 +104,15 @@ def task_info(user, subject):
     subject_static = SubjectStatic.query.filter_by(user_id=user.id).first()
     if subject_static:
         #10800 = 3 hours
-        if time.time()-10 >= subject_static.date_reload:
+        if time.time()-360 >= subject_static.date_reload:
             update_subject_static(user, subject)
         subject_stat = SubjectStatic.query.filter_by(user_id=user.id, subject_codename=subject.codename).first()
         if subject_stat:
             return ({"best_task_random": subject_stat.best_session_list,
+                     "test_points": subject_stat.test_points,
                      "mid_time": subject_stat.last_random_task_time,
-                     "task_table": json.loads(subject_stat.static_tasks_hardest)})
+                     "task_table": json.loads(subject_stat.static_tasks_hardest),
+                     "last_task_procents": json.loads(subject_stat.last_tasks_hardest)})
     return {"best_task_random": 0, "mid_time": 0}
 
 

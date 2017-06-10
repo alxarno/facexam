@@ -132,6 +132,7 @@ class SubjectStatic(db.Model):
     date_reload = db.Column(db.Integer())
     test_points = db.Column(db.Integer())
     time_for_update = db.Column(db.Integer())
+    last_tasks_hardest = db.Column(db.String())
     static_tasks_hardest = db.Column(db.String())
     last_random_task_time = db.Column(db.Integer())
     best_session_list = db.Column(db.Integer())
