@@ -11,6 +11,7 @@ from ...user.models import SubjectStatic
 def update_subject_static(user, subject):
     big_time = time.time()
     subject_stat = SubjectStatic.query.filter_by(user_id=user.id, subject_codename=subject.codename).first()
+
     if subject_stat:
         # update_middle_test_count
         query = db.session.query(Subject, Task, TestSolve).filter(Subject.codename == subject.codename)
@@ -96,6 +97,7 @@ def update_subject_static(user, subject):
         subject_stat.date_reload = time.time()
         subject_stat.last_tasks_hardest = json.dumps(last)
         subject_stat.static_tasks_hardest = json.dumps(table_future_task)
+
         subject_stat.time_for_update = round(time.time()-big_time, 4)
         db.session.commit()
 
@@ -108,9 +110,27 @@ def task_info(user, subject):
             update_subject_static(user, subject)
         subject_stat = SubjectStatic.query.filter_by(user_id=user.id, subject_codename=subject.codename).first()
         if subject_stat:
+            subject_stat.solve_delete_tasks = 0
+            subject_stat.unsolve_delete_tasks = 0
+            db.session.commit()
+            solve_tasks = subject_stat.solve_delete_tasks
+            unsolve_tasks = subject_stat.unsolve_delete_tasks
+            query = db.session.query(Subject, Task, TaskSolve).filter(Subject.codename == subject.codename)
+            query = query.join(Task)
+            query = query.join(TaskSolve).filter(TaskSolve.user_id == user.id).all()
+            for s, t, ts in query:
+                if ts.solve == 1:
+                    solve_tasks += 1
+                else:
+                    unsolve_tasks += 1
+            query = db.session.query(Subject, TestSolve).filter(Subject.codename == subject.codename)
+            query = query.join(TestSolve).filter(TestSolve.user_id == user.id).count()
             return ({"best_task_random": subject_stat.best_session_list,
                      "test_points": subject_stat.test_points,
                      "mid_time": subject_stat.last_random_task_time,
+                     "solve_tasks": solve_tasks,
+                     "unsolve_tasks": unsolve_tasks,
+                     "count_tests": query,
                      "task_table": json.loads(subject_stat.static_tasks_hardest),
                      "last_task_procents": json.loads(subject_stat.last_tasks_hardest)})
     return {"best_task_random": 0, "mid_time": 0}

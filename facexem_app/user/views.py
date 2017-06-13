@@ -30,6 +30,8 @@ def create_user():
     try:
         data = json.loads(request.data)
         email = data['email']
+        name = data['name']
+        password = data['pass']
     except:
         return jsonify(result="Error")
     current_email = User.query.filter_by(email=email).first()
@@ -38,22 +40,23 @@ def create_user():
         db.session.delete(already)
         db.session.commit()
     if current_email is None:
-        new_test_user = TestUser(email)
+        new_test_user = TestUser(email, name, password)
         db.session.add(new_test_user)
         db.session.commit()
-        me  = 'facile.exem@gmail.com'
+        user = TestUser.query.filter_by(email=email).first()
+        me = 'facile.exem@gmail.com'
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Подтверждение почты Facexem'
         msg['From'] = me
         msg['To'] = email
-
+        link = "http://127.0.0.1:9999/api/user/prove-email/" +user.key
         html = """\
         <html>
           <head></head>
           <body>
             <p>Hi!<br>
                How are you?<br>
-               Here is the <a href="http://127.0.0.1/prove-email/">prove email</a> you wanted.
+               Here is the <a href="""+link+""">prove email</a> you wanted.
             </p>
           </body>
         </html>
@@ -65,39 +68,28 @@ def create_user():
         smtpObj.login('facile.exem@gmail.com', 'e710bf70dd906bebaa0b66982eb6e90c')
         smtpObj.sendmail(me, email, msg.as_string())
         smtpObj.quit()
-        return jsonify(result=new_test_user.key)
+        return jsonify(result="Success")
     else:
         return jsonify(result="Error")
 
 
-@user.route('/prove_email', methods=['POST'])
-def prove_email():
-    try:
-        data = json.loads(request.data)
-        email = data['email']
-        name = data['name']
-        key = data['key']
-        password = data['pass']
-    except:
-        return jsonify(result="Error")
-    created_user = TestUser.query.filter_by(key=key).first()
-    if created_user:
-        if created_user.email == email:
-            new_user = User(name, password, email)
+@user.route('/prove-email/<key>', methods=['GET'])
+def prove_email(key):
+    if key:
+        created_user = TestUser.query.filter_by(key=key).first()
+        if created_user:
+            new_user = User(created_user.name, created_user.password, created_user.email)
             db.session.add(new_user)
             token = new_user.token
             session['token'] = token
             session.pop('test_email', None)
-            # info = UserPage(photo='', about='', user_active_achivs='', user=new_user, city='', experience=0)
-            # db.session.add(info)
-            TestUser.query.filter_by(email=email).delete()
+            TestUser.query.filter_by(key=key).delete()
             db.session.commit()
-            print("User " + name + " is created")
-            return jsonify(result="Success")
+            return redirect("http://127.0.0.1:9999/create-profile", code=302)
         else:
-            return jsonify(result='Bad email')
+            return redirect("http://127.0.0.1:9999/login", code=302)
     else:
-        return jsonify(result="Bad key")
+        return redirect("http://127.0.0.1:9999/login", code=302)
 
 
 @user.route('/done_create_page', methods=['POST'])
@@ -123,7 +115,9 @@ def done_create_page():
                 subject = Subject.query.filter_by(codename=i).first()
                 if subject:
                     user_static_subject = SubjectStatic(subject_codename=i, user=user, date_reload=0,\
-                                                        test_points=0, last_random_task_time=0, best_session_list=0)
+                                                        test_points=0, last_random_task_time=0, solve_delete_tasks=0,
+                                                        unsolve_delete_tasks=0, time_for_update=0, last_tasks_hardest=json.dumps([]),
+                                                        static_tasks_hardest=json.dumps([]), best_session_list=0)
                     db.session.add(user_static_subject)
                     count += 1
             user.profile_done = 1

@@ -74,10 +74,14 @@ class TestUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
     key = db.Column(db.String(20), unique=True)
+    name = db.Column(db.String(20), unique=True)
+    password = db.Column(db.String(20), unique=True)
 
-    def __init__(self, email=None):
+    def __init__(self, email=None, name='', password=''):
         self.email = email
         self.get_key(email)
+        self.password = password
+        self.name = name
 
     def get_key(self, email):
         now_time = str(time.time())
@@ -98,7 +102,6 @@ class UserPage(db.Model):
     about = db.Column(db.String(256), nullable=False)
     city = db.Column(db.String(64))
     experience = db.Column(db.Integer())
-    lections = db.Column(db.Integer(), default=0)
     tasks = db.Column(db.Integer(), default=0)
     tests = db.Column(db.Integer(), default=0)
     last_actions = db.Column(db.String(512), default=u'')
@@ -129,6 +132,8 @@ class SubjectStatic(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subject_codename = db.Column(db.String(30))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    solve_delete_tasks = db.Column(db.Integer())
+    unsolve_delete_tasks = db.Column(db.Integer())
     date_reload = db.Column(db.Integer())
     test_points = db.Column(db.Integer())
     time_for_update = db.Column(db.Integer())
