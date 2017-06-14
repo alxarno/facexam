@@ -71,6 +71,9 @@ class TaskSolve(db.Model):
     alltime = db.Column(db.Integer())
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
+    __mapper_args__ = {
+        'confirm_deleted_rows': False
+    }
 
 
 class SessionTasks(db.Model):

@@ -110,9 +110,6 @@ def task_info(user, subject):
             update_subject_static(user, subject)
         subject_stat = SubjectStatic.query.filter_by(user_id=user.id, subject_codename=subject.codename).first()
         if subject_stat:
-            subject_stat.solve_delete_tasks = 0
-            subject_stat.unsolve_delete_tasks = 0
-            db.session.commit()
             solve_tasks = subject_stat.solve_delete_tasks
             unsolve_tasks = subject_stat.unsolve_delete_tasks
             query = db.session.query(Subject, Task, TaskSolve).filter(Subject.codename == subject.codename)

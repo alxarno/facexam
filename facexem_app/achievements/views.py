@@ -50,7 +50,7 @@ def get_all():
         achievs = Achievement.query.all()
         for i in achievs:
             final.append({'id': i.id, 'name': i.name, 'content': i.content, 'type': i.type,
-                          'subject_id': i.subject_id, 'user_id': i.user_id})
+                          'subject_id': i.subject_id, 'user_id': i.author_id})
         return jsonify(final)
     else:
         return jsonify(result="Error: you're not author")

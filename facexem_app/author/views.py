@@ -1,9 +1,9 @@
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 import json
 import time
-from ..user.models import User, TestUser, UserPage,  UserActivity
+from ..user.models import User, TestUser, UserPage,  UserActivity, SubjectStatic
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content, Issue
+from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve
 from .models import Author
 from ..achievements.models import Achievement
 from ..user.constans import ROLES
@@ -19,7 +19,7 @@ def verif_author(token='', user_code=''):
         data = json.loads(request.data)
         token = data['token']
     except:
-        data = ''
+        data = {'code': user_code}
     current_author = Author.query.filter_by(token=token).first()
     if current_author:
         if 'a_token' in session:
@@ -74,7 +74,7 @@ def get_info():
 def my_achievs():
     author = verif_author()
     if author:
-        achievs = Achievement.query.filter_by(user=author)
+        achievs = Achievement.query.filter_by(author_id=author.id)
         final = []
         for i in achievs:
             final.append({
@@ -100,7 +100,8 @@ def my_subjects():
                 final.append({
                         "codename": subject.codename,
                         "name": subject.name,
-                        "count": count
+                        "count": count,
+                        "points": json.loads(subject.system_points)
                     })
         return jsonify(final)
     else:
@@ -308,9 +309,20 @@ def delete_task():
             return jsonify(result='Error: data uncomplete')
         task = Task.query.filter_by(id=id).first()
         if task:
+            subject = Subject.query.filter_by(id=task.subject_id).first()
             task_content = Content.query.filter_by(task_id=id).first()
             if task_content:
                 db.session.delete(task_content)
+            query = db.session.query(User, TaskSolve, SubjectStatic).filter(TaskSolve.task_id == task.id)
+            query = query.join(SubjectStatic, SubjectStatic.subject_codename == subject.codename)
+            for u, ts, st in query:
+                if ts.solve == 1:
+                    st.solve_delete_tasks += 1
+                else:
+                    st.unsolve_delete_tasks += 1
+                db.session.commit()
+                db.session.delete(ts)
+                db.session.commit()
             db.session.delete(task)
             db.session.commit()
 #         Delete files of task
@@ -358,8 +370,35 @@ def query_task():
 def get_my_issues():
     author = verif_author()
     if author:
-        return jsonify(result='Success')
+        final = []
+        query = db.session.query(Issue, Task).filter(Task.author_id == author.id)
+        for i, t in query:
+            final.append({
+                'content': i.content,
+                'solve': i.solve,
+                'task_id': t.id,
+                'issue_id': i.id
+            })
+        return jsonify(final)
     return jsonify(result='Error')
+
+
+@author.route('/delete-issue', methods=['POST'])
+def delete_issue():
+    author = verif_author()
+    if author:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            query = db.session.query(Issue).filter_by(id=id).first()
+            if query:
+                db.session.delete(query)
+                db.session.commit()
+            return jsonify(result='Success')
+        except:
+            None
+    return jsonify(result='Error')
+
 
 
 @author.route('/set_availability', methods=['POST'])
@@ -379,20 +418,20 @@ def availability():
     return jsonify(result='Error')
 
 
-@author.route('/achiev/upload', methods=['POST'])
-def upload():
+@author.route('/achiev/create', methods=['POST'])
+def achiev_create():
     file = request.files['file']
     data = dict(request.form)
-    author = verif_author(data['token'][0])
+    data = json.loads(data['data'][0])
+    author = verif_author(data['token'], "232323")
     if author:
         try:
-            name = data['name'][0]
-            content = data['content'][0]
-            type = data['type'][0]
-            count = data['count'][0]
-            condition = data["condition"][0]
-            codename = data['codename'][0]
-            print(name, content, type, condition, codename, file.filename)
+            name = data['name']
+            content = data['content']
+            type = data['type']
+            count = data['count']
+            condition = data["add"]
+            codename = data['subject']
         except:
             return jsonify(result="Error: not all data there are")
         subject = Subject.query.filter_by(codename=codename).first()
@@ -404,7 +443,7 @@ def upload():
             if file and file.filename:
                 file.save(os.path.join(UPLOAD_FOLDER, str(new_achiev.id)+'.png'))
             return jsonify(result="Success")
-    return jsonify(result="Success")
+    return jsonify(result="Error")
 
 
 @author.route('/achiev/delete', methods=['POST'])

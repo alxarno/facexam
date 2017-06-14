@@ -178,6 +178,7 @@ def user_get_global_static(user):
         test += TestSolve.query.filter_by(solve=1).count()
         for i in subjects:
             middle += i.test_points
+            tasks += i.solve_delete_tasks
         result = {'middle': middle,
                   'tasks': tasks,
                   'tests': test}

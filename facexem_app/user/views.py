@@ -116,7 +116,8 @@ def done_create_page():
                 if subject:
                     user_static_subject = SubjectStatic(subject_codename=i, user=user, date_reload=0,\
                                                         test_points=0, last_random_task_time=0, solve_delete_tasks=0,
-                                                        unsolve_delete_tasks=0, time_for_update=0, last_tasks_hardest=json.dumps([]),
+                                                        unsolve_delete_tasks=0, time_for_update=0,
+                                                        last_tasks_hardest=json.dumps([]),
                                                         static_tasks_hardest=json.dumps([]), best_session_list=0)
                     db.session.add(user_static_subject)
                     count += 1
@@ -407,28 +408,31 @@ def get_task():
             number = 'any'
         if user:
             subject = Subject.query.filter_by(codename=codename).first()
+            # get user solve tasks id's list
             solve_task_array = []
             users_solve_tasks = db.session.query(TaskSolve).filter(TaskSolve.user_id == now_user.id)
             users_solve_tasks = users_solve_tasks.join(Task, Task.id == TaskSolve.task_id)
             users_solve_tasks = users_solve_tasks.join(Subject, Subject.id == Task.subject_id).all()
             for taskSolve in users_solve_tasks:
                 solve_task_array.append(taskSolve.task_id)
+            # make choosen of tasks without retrys
             if number == 'any':
-                tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                tasks = db.session.query(Task).filter(Task.subject_id == subject.id, Task.open == 1,
                                                       ~Task.id.in_(solve_task_array)).limit(20).all()
                 if len(tasks) == 0:
-                    if len(solve_task_array)==0:
+                    if len(solve_task_array) == 0:
                         return jsonify(result="Empty")
-                    tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                    tasks = db.session.query(Task).filter(Task.subject_id == subject.id, Task.open == 1,
                                             Task.id != solve_task_array[len(solve_task_array)-1]).limit(20).all()
             else:
-                tasks = db.session.query(Task).filter(Task.subject_id == subject.id,
+                tasks = db.session.query(Task).filter(Task.subject_id == subject.id, Task.open == 1,
                                                       Task.number == number,
                                                       ~Task.id.in_(solve_task_array)).limit(20).all()
                 if len(tasks) == 0:
-                    if len(solve_task_array)==0:
+                    if len(solve_task_array) == 0:
                         return jsonify(result="Empty")
                     tasks = db.session.query(Task).filter(
+                        Task.open == 1,
                         Task.subject_id == subject.id,
                         Task.number == number,
                         Task.id != solve_task_array[len(solve_task_array)-1]).limit(20).all()
@@ -517,7 +521,7 @@ def set_report_task():
             return jsonify(result='Error')
         task = Task.query.filter_by(id=id).first()
         if task:
-            report = Issue(content=content, solve=0, author_id=user.id, task_id=id)
+            report = Issue(content=content, solve=0, author_id=user.id, task_id=task.id)
             db.session.add(report)
             db.session.commit()
             return jsonify(result='Success')
