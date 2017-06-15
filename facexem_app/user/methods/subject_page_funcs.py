@@ -55,23 +55,24 @@ def update_subject_static(user, subject):
         # hardest_number
         query = db.session.query(Subject, Task, TaskSolve).filter(Subject.codename == subject.codename)
         query = query.join(Task)
-        query = query.join(TaskSolve).filter(
-            TaskSolve.user_id == user.id).all()
+        query = query.join(TaskSolve).filter(TaskSolve.user_id == user.id).all()
         table = json.loads(subject.system_points)
         table_future_task = []
-        tasks = []
         for i in range(len(table)):
             table_future_task.append({'num': i+1, 'theme': table[i]['theme'],
-                                      'solve': 0, 'unsolve': 0, 'procent': 0,
+                                      'solve': 0, 'unsolve': 0, 'procent': 0, 'all_time': 0,
                                       'color': 'yellow'})
         for s, t, ts in query:
             if ts.solve == 1:
                 table_future_task[t.number - 1]['solve'] += 1
             else:
                 table_future_task[t.number - 1]['unsolve'] += 1
+            table_future_task[t.number - 1]['all_time'] += ts.time
 
         for y in table_future_task:
             if y['unsolve'] != 0:
+                # You are asking yourself: "Why this miracle guy, wrote this 2?", and i'm answering:
+                # "Because solve tasks'es count must be more then unsolve tasks in two times" :)
                 y['procent'] = round((y['solve']/2) / y['unsolve'], 2)
                 if y['procent']>1: y['procent'] = 1
             elif y['solve'] != 0: y['procent'] = 1

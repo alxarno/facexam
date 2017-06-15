@@ -1,12 +1,10 @@
 from ...subject.models import Subject, TaskSolve, TestSolve, Task
 from ...achievements.models import Achievement
 from ...author.models import Author
-from ..models import User
 import datetime
 import time
 import json
 from ...extensions import db
-from sqlalchemy import desc
 
 
 

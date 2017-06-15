@@ -8,7 +8,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic
 from ..extensions import db
 from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks
-from .methods import somefuncs, user_page_funcs, subject_page_funcs
+from .methods import somefuncs, user_page_funcs, subject_page_funcs, user_test
 from ..achievements.models import Achievement
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
@@ -621,88 +621,26 @@ def global_static():
         return jsonify(result="Error")
 
 
-# @user.route('/get_test', methods=['POST'])
-# def get_test():
-#     now_user = verif_user()
-#     if now_user:
-#         data = json.loads(request.data)
-#         test = []
-#         try:
-#             info_counts = data['counts']
-#             subject = data['subject_codename']
-#         except:
-#             return jsonify(result="Error: havent counts or subject_codename")
-#         subject = Subject.query.filter_by(codename=subject).first()
-#         if subject:
-#             for count in info_counts:
-#                 now_count_tasks = int(info_counts[count]['count'])
-#                 tasks_id = []
-#                 limit = 0
-#                 for g in range(0, now_count_tasks):
-#                     task_count = int(Task.query.filter_by(subject_id=subject.id).count())
-#                     random1 = random.random()
-#                     random_id_task = round(task_count*random1)
-#                     if random_id_task not in tasks_id:
-#                         rt = Task.query.filter_by(id=random_id_task, number=count, subject_id=subject.id).first()
-#                         if rt:
-#                             tasks_id.append(random_id_task)
-#                             test.append({"id": rt.id, "content": rt.content})
-#                     else:
-#                         if limit <= 3:
-#                             now_count_tasks += 1
-#                             limit += 1
-#             return jsonify(test)
-#         else:
-#             return jsonify(result="Error: bad subject_codename")
-#     else:
-#         return jsonify(result="Error")
+@user.route('/get_test', methods=['POST'])
+def get_test():
+    user = verif_user()
+    if user:
+        try:
+            data =json.loads(request.data)
+            counts = data['counts']
+            subject = data['subject']
+        except:
+            return jsonify(result='Error')
+        if counts == []:
+            return jsonify(result='Error')
+        subject = Subject.query.filter_by(codename=subject).first()
+        if subject:
+            final = []
+            for i in range(len(counts)):
+                final += user_test.get_user_task(user, subject, i+1, counts[i])
+            return jsonify(final)
+    return jsonify(result='Error')
 
-
-# @user.route('/check_test', methods=['POST'])
-# def check_test():
-#     now_user = verif_user()
-#     points = 0
-#     if now_user:
-#         data = json.loads(request.data)
-#         try:
-#             answers = data['answers']
-#             type = data['type']
-#             subject_codename = data['subject_code']
-#         except:
-#             return jsonify(result="Error")
-#         for i in answers:
-#             now_id = i.id
-#             type = i.type
-#             answer = i.answer
-#             task = Task.query.filter_by(id=now_id).first()
-#             try:
-#                 real_answer = json.loads(task.answer)
-#             except:
-#                 return jsonify(result="Error")
-#             if task:
-#                 if type == 'hard':
-#                     for j in range(0, len(answer)-1):
-#                         if answer[j] == real_answer[j]:
-#                             points += 1
-#                 else:
-#                     if answer[0] == real_answer[0]:
-#                         points += 1
-#         if type == 'usual':
-#             subject = UserSubjects.query.filter_by(subject_codename=subject_codename).first()
-#             real_subject = Subject.query.filter_by(codename=subject_codename).first()
-#             if subject and real_subject:
-#                 tests = json.loads(subject.passed_tests)
-#                 tests[len(tests)-1] = 0
-#                 for i in range(1, len(tests)-1, -1):
-#                     tests[i] = tests[i-1]
-#                 system_points = json.loads(real_subject.system_points)
-#                 points_100 = system_points[str(points)]
-#                 tests[0] = points_100
-#                 subject.points_of_tests = tests
-#                 db.session.dommit()
-#         return jsonify(result=points)
-#     else:
-#         return jsonify(result='Error')
 
 
 @user.route('/get_challenge', methods=['POST'])
