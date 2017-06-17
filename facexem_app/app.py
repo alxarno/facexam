@@ -74,6 +74,11 @@ def icons(smth):
     return app.send_static_file('other/icons&pictures/'+smth+'.svg')
 
 
+@app.route('/interface/<smth>')
+def interface(smth):
+    return app.send_static_file('other/interface/'+smth+'.svg')
+
+
 @app.route('/subject_pic/<smth>')
 def subject_pic(smth):
     return app.send_static_file('other/subjects_pic/'+smth+'.png')
