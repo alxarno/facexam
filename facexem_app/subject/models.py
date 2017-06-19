@@ -14,8 +14,6 @@ class Subject(db.Model):
     sessions = db.relationship('SessionTasks', backref='subject')
 
 
-
-
 class Task(db.Model):
     __tablename__ = "subjects_tasks"
     id = db.Column(db.Integer, primary_key=True)
@@ -26,6 +24,7 @@ class Task(db.Model):
     content = db.relationship('Content', backref='task')
     issues = db.relationship('Issue', backref='issue')
     solve_task = db.relationship('TaskSolve', backref='task')
+    test_tasks = db.relationship('TestTask', backref='task')
 
 
 class Content(db.Model):
@@ -91,11 +90,23 @@ class TestSolve(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer())
     count = db.Column(db.Integer())
+    need_count = db.Column(db.Integer())
     # type : 1=default, 2=personal
     type = db.Column(db.Integer())
     solve = db.Column(db.Integer())
+    hundred_value = db.Column(db.Integer())
+    hundred_need_count = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
     alltime = db.Column(db.Integer())
-    date = db.Column(db.DateTime(timezone=False))
-    tasks = db.Column(db.String(128))
+    tasks = db.relationship('TestTask', backref='test')
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+
+
+class TestTask(db.Model):
+    __tablename__ = 'test_tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    answer = db.Column(db.String(150))
+    solve = db.Column(db.Integer())
+    count = db.Column(db.Integer())
+    task_id = db.Column(db.Integer(), db.ForeignKey('subjects_tasks.id'))
+    test_id = db.Column(db.Integer(), db.ForeignKey('test_solve.id'))

@@ -7,7 +7,7 @@ from flask import Blueprint, redirect, url_for, request, jsonify, session
 
 from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks
+from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks,TestSolve
 from .methods import somefuncs, user_page_funcs, subject_page_funcs, user_test
 from ..achievements.models import Achievement
 
@@ -639,6 +639,43 @@ def get_test():
             for i in range(len(counts)):
                 final += user_test.get_user_task(user, subject, i+1, counts[i])
             return jsonify(final)
+    return jsonify(result='Error')
+
+
+@user.route('/check-test', methods=['POST'])
+def check_test():
+    user = verif_user()
+    if user:
+        try:
+            data = json.loads(request.data)
+            answers = data['answers']
+            time = data['time']
+            codename = data['codename']
+        except:
+            return jsonify(result='Error')
+        subject = Subject.query.filter_by(codename=codename).first()
+        if subject:
+            final = user_test.check_test(user, answers, subject, time)
+            return jsonify(final)
+    return jsonify(result='Error')
+
+
+@user.route('/test-result', methods=['POST'])
+def test_result():
+    user = verif_user()
+    if user:
+        try:
+            data = json.loads(request.data)
+            id = data['id']
+            codename = data['codename']
+        except:
+            return jsonify(result='Error')
+        test = TestSolve.query.filter_by(id=id, user_id=user.id).first()
+        if test:
+            subject = Subject.query.filter_by(codename=codename).first()
+            if subject:
+                final = user_test.get_test_results(user, test, subject)
+                return jsonify(final)
     return jsonify(result='Error')
 
 
