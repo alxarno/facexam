@@ -12,6 +12,8 @@ class Subject(db.Model):
     achievements = db.relationship('Achievement', backref='subject')
     challenges = db.relationship('Challenge', backref='subject')
     sessions = db.relationship('SessionTasks', backref='subject')
+    time_pass = db.Column(db.Integer())
+    min_point_test = db.Column(db.Integer())
 
 
 class Task(db.Model):

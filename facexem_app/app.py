@@ -10,10 +10,10 @@ from .user.models import User
 from flask_cors import CORS
 from .user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY
-import json
+import json, jwt
+from config import SECRET_KEY
 
 app = Flask('Facexem', instance_relative_config=True, static_folder='frontend')
-
 app.register_blueprint(user)
 app.register_blueprint(author)
 app.register_blueprint(subject)
@@ -40,7 +40,9 @@ def verif_author():
 @app.route('/login', methods=['GET'])
 def login():
     if 'token' in session:
-        user = User.query.filter_by(token=session['token']).first()
+        data_token = jwt.decode(session['token'], SECRET_KEY)
+        user_token = data_token['public']
+        user = User.query.filter_by(token=user_token).first()
         if user:
             return redirect(url_for('main'))
         else:
@@ -102,7 +104,9 @@ def get_smoth():
 @app.route('/create-profile', methods=['GET'])
 def create_profile():
     if 'token' in session:
-        user = User.query.filter_by(token=session['token']).first()
+        data_token = jwt.decode(session['token'], SECRET_KEY)
+        user_token = data_token['public']
+        user = User.query.filter_by(token=user_token).first()
         if user:
             if user.profile_done == 0:
                 return app.send_static_file('log-in/index.html')
@@ -117,7 +121,9 @@ def create_profile():
 @app.route('/mypage',  methods=['GET'])
 def main():
     if 'token' in session:
-        user = User.query.filter_by(token=session['token']).first()
+        data_token = jwt.decode(session['token'], SECRET_KEY)
+        user_token = data_token['public']
+        user = User.query.filter_by(token=user_token).first()
         if user:
             if user.profile_done == 0:
                 return redirect(url_for('create_profile'))

@@ -1,4 +1,4 @@
-from ...subject.models import Subject, TaskSolve, TestSolve, Task
+from ...subject.models import Subject, TaskSolve, TestSolve, Task, SessionTasks
 from ...achievements.models import Achievement
 from ...author.models import Author
 import datetime
@@ -96,6 +96,7 @@ def user_get_activity(user):
                 TaskSolve.solve == 1,
                 TaskSolve.user_id == user.id).all()
         finals_querys.append(query)
+
     for i in finals_querys:
         final.append(len(i))
     k = 0
@@ -132,11 +133,15 @@ def user_get_preference(user):
 
 
 def user_get_last_actions(user):
-    query_task = db.session.query(TaskSolve).order_by(TaskSolve.alltime.desc()).limit(7).all()
+    query_task = db.session.query(SessionTasks).order_by(SessionTasks.date.desc()).limit(7).all()
     some_query = db.session.query(TestSolve).order_by(TestSolve.alltime.desc()).limit(7).all()
     all=[]
     for i in query_task:
-        all.append({'type': 'task', "content": i})
+        try:
+            i.alltime = i.date
+        except:
+            None
+        all.append({'type': 'few_tasks', "content": i})
     for i in some_query:
         all.append({'type': 'test', "content": i})
     for i in range(len(all)):
@@ -149,20 +154,38 @@ def user_get_last_actions(user):
 
     final = []
     for i in all[:6]:
-        if i['type'] == 'task':
-            task = db.session.query(Task, Subject).filter(Task.id == i['content'].task_id)
-            subject = task.join(Subject, Subject.id == Task.subject_id)
-            records = subject.all()
-            for task, subject in records:
-                if i['content'].solve == 0:
-                    text = 'Не решено'
-                else:
-                    text="Решено"
+        if i['type'] == 'few_tasks':
+            subject = db.session.query(Subject).filter_by(id=i['content'].subject_id).first()
+            # tasks = db.session.query(Task, Subject).filter(Task.id == i['content'].task_id)
+            if subject:
+                tasks = db.session.query(SessionTasks, TaskSolve).filter(
+                    SessionTasks.id == i['content'].id
+                ).join(TaskSolve).filter(TaskSolve.solve == 1).count()
+                word = 'заданий'
+                if tasks > 0:
+                    if tasks == 1:
+                       word = 'задание'
+                    elif tasks < 5:
+                        word = 'задания'
+                    final.append({
+                        "text": str(tasks) + " " + word + " решенно по предмету " + subject.name,
+                        "img": "/icon/test-tube"
+                    })
+        else:
+            subject = db.session.query(Subject).filter_by(id=i['content'].subject_id).first()
+            if subject:
+                word = 'Не решен'
+                img = '/icon/flask_1'
+                if i['content'].solve == 1:
+                    word = 'Решен'
+                    img = "/icon/flask"
                 final.append({
-                    "text": text+ " задание по предмету "+subject.name,
-                    "img": "/icon/test-tube"
+                    "text": word + " тест по предмету " + subject.name + " на "
+                            + str(round(i['content'].hundred_value)) + " баллов из "
+                            + str(round(i['content'].hundred_need_count)),
+                    "img": img,
+                    "link": "/"+subject.codename + "/mytest/" + str(i['content'].id)
                 })
-
     return final
 
 
