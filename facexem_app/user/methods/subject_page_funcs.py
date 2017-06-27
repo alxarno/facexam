@@ -1,4 +1,4 @@
-from ...subject.models import Subject, TaskSolve, Task, TestSolve, SessionTasks
+from ...subject.models import Subject, TaskSolve, Task, TestSolve, SessionTasks, TestTask
 from ...achievements.models import Achievement
 from ..models import User
 import datetime
@@ -14,9 +14,7 @@ def update_subject_static(user, subject):
 
     if subject_stat:
         # update_middle_test_count
-        query = db.session.query(Subject, Task, TestSolve).filter(Subject.codename == subject.codename)
-        query = query.join(Task)
-        query = query.join(TestSolve).filter(TestSolve.user_id == user.id, TestSolve.type == 1).all()
+        query = db.session.query(TestSolve).filter_by(subject_id=subject.id, user_id=user.id, type=1).all()
         sum = 0
         count = len(query)
         for i in query:
@@ -121,14 +119,15 @@ def task_info(user, subject):
                     solve_tasks += 1
                 else:
                     unsolve_tasks += 1
-            query = db.session.query(Subject, TestSolve).filter(Subject.codename == subject.codename)
-            query = query.join(TestSolve).filter(TestSolve.user_id == user.id).count()
+            # query = db.session.query(Subject, TestSolve).filter(Subject.codename == subject.codename)
+            # query = query.join(TestSolve).filter(TestSolve.user_id == user.id).count()
+            tests = TestSolve.query.filter_by(user_id=user.id, subject_id=subject.id).count()
             return ({"best_task_random": subject_stat.best_session_list,
                      "test_points": subject_stat.test_points,
                      "mid_time": subject_stat.last_random_task_time,
                      "solve_tasks": solve_tasks,
                      "unsolve_tasks": unsolve_tasks,
-                     "count_tests": query,
+                     "count_tests": tests,
                      "task_table": json.loads(subject_stat.static_tasks_hardest),
                      "last_task_procents": json.loads(subject_stat.last_tasks_hardest)})
     return {"best_task_random": 0, "mid_time": 0}
@@ -181,3 +180,40 @@ def get_subject_activity(user, subject):
             dates[k] = date
             k += 1
         return {'values': final, 'dates': dates}
+
+
+def get_tests_info(user, subject):
+    # get middle time
+    tests = db.session.query(TestSolve).filter_by(subject_id=subject.id, user_id=user.id, type=1).all()
+    sum_time = 0
+    sum_points = 0
+    for i in tests:
+        sum_time += i.time
+        sum_points += i.hundred_value
+    if len(tests) > 0:
+        middle_time = round(sum_time/len(tests))
+        middle_point = round(sum_points/len(tests))
+    else:
+        middle_time = 0
+        middle_point = 0
+    # get numbers info
+    numbers = {}
+    system_points = json.loads(subject.system_points)
+    query = db.session.query(TestSolve, TestTask, Task).filter(TestSolve.subject_id == subject.id,
+                                                               TestSolve.user_id == user.id, TestSolve.type == 1)
+    query = query.join(TestTask).join(Task)
+    for ts, tt, t in query:
+        numbers[str(t.number)]['solve_tasks'] += tt.solve
+        numbers[str(t.number)]['count'] += tt.count
+        if not numbers[str(t.number)]['need_count']:
+            numbers[str(t.number)]['need_count'] = system_points[t.number]['count']
+            numbers[str(t.number)]['theme'] = system_points[t.number]['theme']
+        if tt.solve == 0:
+            numbers[str(t.number)]['unsolve_tasks'] += 1
+    for i in numbers.keys():
+        numbers[str(i)]['count'] = numbers[str(i)]['count']/\
+                                   (numbers[str(i)]['unsolve_tasks']+numbers[str(i)]['solve_tasks'])
+
+    return {"middle_time": middle_time,
+            "middle_point": middle_point,
+            "number_info": numbers}

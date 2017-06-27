@@ -30,7 +30,9 @@ CORS(app)
 def verif_author():
     if 'token' in session:
         token = session['token']
-        current_author = User.query.filter_by(token=token).first()
+        data_token = jwt.decode(token, SECRET_KEY)
+        user_token = data_token['public']
+        current_author = User.query.filter_by(token=user_token).first()
         current_author = Author.query.filter_by(user_id=current_author.id).first()
         if current_author:
                 return current_author

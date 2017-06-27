@@ -19,19 +19,17 @@ user = Blueprint('user', __name__, url_prefix='/api/user')
 def verification_user(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        try:
-            data = json.loads(request.data)
-            token = data['token']
-            data_token = jwt.decode(token, SECRET_KEY)
-            user_token = data_token['public']
-            now_user = User.query.filter_by(token=user_token).first()
-            if now_user:
-                return f(now_user, *args, **kwargs)
-            else:
-                return json.dumps({"result": 'Error', "type": 'user_is_required'})
-        except:
-            return json.dumps({"result": 'Error', "type": 'user_is_required'})
+        data = json.loads(request.data)
+        token = data['token']
+        data_token = jwt.decode(token, SECRET_KEY)
+        user_token = data_token['public']
+        now_user = User.query.filter_by(token=user_token).first()
+        if now_user:
+            return f(now_user, *args, **kwargs)
+        else:
+            return jsonify({"result": 'Error', "type": 'User is required'})
     return wrapper
+
 
 @user.route('/create', methods=['POST'])
 def create_user():
@@ -436,11 +434,12 @@ def get_answer(now_user):
     session_task = SessionTasks.query.filter_by(key=session_key, user_id=now_user.id).first()
     if session_task:
         task_solve = TaskSolve(time=user_time, count=count, solve=solve, alltime=all_time,
-                              user_id=now_user.id, task_id=content.task_id, type=type, session_id=session_task.id)
+                                user_id=now_user.id, task_id=content.task_id, type=type, session_id=session_task.id)
         db.session.add(task_solve)
         db.session.commit()
         # for i in range
         return jsonify(answer=right)
+    return jsonify({"result": 'Error', "type": 'Session is failed'})
 
 
 @user.route('/session_start', methods=['POST'])
@@ -449,11 +448,12 @@ def set_session_start(now_user):
     try:
         data = json.loads(request.data)
         codename = data['subject']
+        codename = data['subject']
         subject = Subject.query.filter_by(codename=codename).first()
         if subject:
             time_now = time.time()
-            key = hashlib.md5(str(User.id).encode('utf8')+str(time_now).encode('utf8')).hexdigest()
-            session = SessionTasks(date=time_now, user_id=user.id, key=key, subject_id=subject.id)
+            key = hashlib.md5(str(now_user.id).encode('utf8')+str(time_now).encode('utf8')).hexdigest()
+            session = SessionTasks(date=time_now, user_id=now_user.id, key=key, subject_id=subject.id)
             db.session.add(session)
             db.session.commit()
             return jsonify(key)
@@ -575,7 +575,7 @@ def get_test(now_user):
     if subject:
         final = []
         for i in range(len(counts)):
-            final += user_test.get_user_task(user, subject, i+1, counts[i])
+            final += user_test.get_user_task(now_user, subject, i+1, counts[i])
         return jsonify(final)
 
 
@@ -591,7 +591,7 @@ def check_test(now_user):
         return jsonify(result='Error')
     subject = Subject.query.filter_by(codename=codename).first()
     if subject:
-        final = user_test.check_test(user, answers, subject, time)
+        final = user_test.check_test(now_user, answers, subject, time)
         return jsonify(final)
 
 
@@ -604,11 +604,11 @@ def test_result(now_user):
         codename = data['codename']
     except:
         return jsonify(result='Error')
-    test = TestSolve.query.filter_by(id=id, user_id=user.id).first()
+    test = TestSolve.query.filter_by(id=id, user_id=now_user.id).first()
     if test:
         subject = Subject.query.filter_by(codename=codename).first()
         if subject:
-            final = user_test.get_test_results(user, test, subject)
+            final = user_test.get_test_results(now_user, test, subject)
             return jsonify(final)
 
 
@@ -644,8 +644,9 @@ def get_my_subject(now_user):
     subject = Subject.query.filter_by(codename=subject_codename).first()
     if subject:
         task_info = subject_page_funcs.task_info(now_user, subject)
+        test_info = subject_page_funcs.get_tests_info(now_user, subject)
         activity = subject_page_funcs.get_subject_activity(now_user, subject)
-    return jsonify({"task_info": task_info, "activity": activity})
+    return jsonify({"task_info": task_info, "activity": activity, "test_info": test_info})
 
 
 @user.route('/get_mypage', methods=['POST'])
@@ -668,3 +669,18 @@ def get_mypage(now_user):
 @verification_user
 def get_settings(now_user):
     return jsonify({'key': now_user.public_key})
+
+
+@user.route('/get_test_info', methods=['POST'])
+@verification_user
+def get_test_info(now_user):
+    try:
+        data = json.loads(request.data)
+        codename = data['codename']
+    except:
+        return jsonify({"result": 'Error', "type": 'Subject codename is required'})
+    subject = Subject.query.filter_by(codename=codename).first()
+    if subject:
+        return jsonify(subject_page_funcs.get_tests_info(now_user, subject))
+    else:
+        return jsonify({"result": 'Error', "type": 'Subject is undefined'})
