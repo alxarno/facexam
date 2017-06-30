@@ -216,12 +216,11 @@ def get_page_info(now_user):
 
 
 @user.route('/set_page_info', methods=['POST'])
-def set_page_info():
+@verification_user
+def set_page_info(now_user):
     data = json.loads(request.data)
-
-    maybe_user = verif_user()
-    if maybe_user:
-        info = maybe_user.info_page
+    if now_user:
+        info = now_user.info_page
         try:
             photo = data['photo']
             info[0].photo = photo
@@ -229,7 +228,7 @@ def set_page_info():
             photo = 0
         try:
             name = data['name']
-            maybe_user.name = name
+            now_user.name = name
         except:
             name = 0
         try:

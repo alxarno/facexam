@@ -59,7 +59,6 @@ def check_test(user, answers, subject, u_time):
         for i in range(len(real_answer)):
             try:
                 if user_answer[i] == real_answer[i]:
-                    print(user_answer[i], real_answer[i])
                     count += 1
             except:
                 None
@@ -79,7 +78,8 @@ def check_test(user, answers, subject, u_time):
         #     "u_answer": user_answer
         # })
     solve = 0
-    if all_count >= need_count*0.23:
+    limit = subject.min_point_test/100
+    if all_count >= need_count*limit and u_time < subject.time_pass:
         solve = 1
     test = TestSolve.query.filter_by(id=test.id).first()
     test.count = all_count
@@ -96,6 +96,7 @@ def get_test_results(user, test, subject):
         "count": test.count,
         "need_count": test.need_count,
         "time": test.time,
+        "need_time": subject.time_pass,
         "solve": test.solve,
         "hundred_value": test.hundred_value,
         "need_hundred_value": test.hundred_need_count
@@ -111,6 +112,7 @@ def get_test_results(user, test, subject):
     for tt, t, c in query:
         contents.append({
             "number": t.number,
+            "id": t.id,
             "task": json.loads(c.content),
             "description": json.loads(c.description),
             "answer": json.loads(c.answers),

@@ -9,7 +9,7 @@ from ..achievements.models import Achievement
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY, SECRET_KEY
 import os, shutil
-from config import SUBJECT_FOLDER, UPLOAD_FOLDER
+from config import SUBJECT_FOLDER, UPLOAD_FOLDER, TASK_FOLDER
 from functools import wraps
 
 author = Blueprint('author', __name__, url_prefix='/api/author')
@@ -194,7 +194,7 @@ def create_task(wr_user):
         db.session.commit()
         content = Content(content=json.dumps([{'type': "mainquest", 'content': []}]), description=json.dumps([]),
                           answers=json.dumps([]), task_id=task.id)
-        path = SUBJECT_FOLDER
+        path = TASK_FOLDER
         path = path + '/' + str(task.id)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -209,12 +209,13 @@ def create_task(wr_user):
 def task_images(wr_user, id):
     task = Task.query.filter_by(id=id).first()
     if task:
-        subject = Subject.query.filter_by(id=task.subject_id).first()
-        if subject:
-            path = SUBJECT_FOLDER + '/' + id
-            if os.path.exists(path):
-                result = os.listdir(path)
-                return jsonify(result)
+        path = TASK_FOLDER + '/' + id
+        print(path)
+        if os.path.exists(path):
+            result = os.listdir(path)
+            return jsonify(result)
+        return jsonify({"result": 'Error', "type": 'Folder is undefined'})
+    return jsonify({"result": 'Error', "type": 'Task is undefined'})
 
 
 @author.route('/download_task_img/<id>', methods=['POST'])
@@ -225,7 +226,7 @@ def download_task_img(id):
     if author:
         task = Task.query.filter_by(id=id).first()
         if task and file:
-            path = SUBJECT_FOLDER + '/' + id
+            path = TASK_FOLDER + '/' + id
             if os.path.exists(path):
                 name = []
                 for i in str(time.time()):
@@ -255,7 +256,7 @@ def delete_img(wr_user):
         return jsonify(result='Error')
     task = Task.query.filter_by(id=id).first()
     if task:
-        path = SUBJECT_FOLDER + '/' + str(id) + '/' + str(name) + '.png'
+        path = TASK_FOLDER + '/' + str(id) + '/' + str(name) + '.png'
         if os.path.exists(path):
             os.remove(path)
             return jsonify(result='Success')
@@ -322,7 +323,7 @@ def delete_task(wr_user):
         db.session.delete(task)
         db.session.commit()
 #         Delete files of task
-        path = SUBJECT_FOLDER + '/' + str(id)
+        path = TASK_FOLDER + '/' + str(id)
         if os.path.exists(path):
             shutil.rmtree(path, ignore_errors=False, onerror=None)
         return jsonify(result='Success')

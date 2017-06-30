@@ -14,6 +14,7 @@ class Subject(db.Model):
     sessions = db.relationship('SessionTasks', backref='subject')
     time_pass = db.Column(db.Integer())
     min_point_test = db.Column(db.Integer())
+    additional_themes = db.Column(db.String(256))
 
 
 class Task(db.Model):

@@ -192,7 +192,8 @@ def create_subject():
     if admin:
         file = request.files['file']
         subject = Subject(name=data['name'], system_points=json.dumps(data['points']),
-                          access=0,codename=data['codename'])
+                          access=0, codename=data['codename'], time_pass=int(data['time_limit'])*60,
+                          min_point_test=int(data['min_point']), additional_themes=json.dumps(data['addThemes']))
         db.session.add(subject)
         db.session.commit()
         if file and file.filename:
@@ -232,9 +233,17 @@ def get_subject_info():
                 tasks = Task.query.filter_by(subject_id=subject.id).count()
                 achievs = Achievement.query.filter_by(subject_id=subject.id).count()
                 challenges = Challenge.query.filter_by(subject_id=subject.id).count()
+                add_themes = []
+                try:
+                    add_themes = json.loads(subject.additional_themes)
+                except:
+                    None
                 final = {
                     "name": subject.name,
+                    "time": subject.time_pass/60,
+                    "min_point": subject.min_point_test,
                     "points": json.loads(subject.system_points),
+                    "add_themes": add_themes,
                     "access": subject.access,
                     "codename": subject.codename,
                     "task": tasks,
@@ -257,10 +266,18 @@ def save_subject_info():
             name = data['name']
             access = data['access']
             codename = data['codename']
+            points = data['points']
+            time_pass = data['time']
+            min_point = data['min_point']
+            add_themes = data['add_themes']
             subject = Subject.query.filter_by(codename=codename).first()
             if subject:
                 subject.name = name
                 subject.access = access
+                subject.time_pass = int(time_pass)*60
+                subject.min_point_test = min_point
+                subject.system_points = json.dumps(points)
+                subject.additional_themes = json.dumps(add_themes)
                 db.session.commit()
                 if data['file']:
                     file = request.files['file']
