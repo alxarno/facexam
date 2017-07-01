@@ -25,6 +25,7 @@ class Task(db.Model):
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
     author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
     content = db.relationship('Content', backref='task')
+    themes = db.Column(db.String(256))
     issues = db.relationship('Issue', backref='issue')
     solve_task = db.relationship('TaskSolve', backref='task')
     test_tasks = db.relationship('TestTask', backref='task')

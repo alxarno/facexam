@@ -11,14 +11,50 @@ from ...user.models import SubjectStatic
 def update_subject_static(user, subject):
     big_time = time.time()
     subject_stat = SubjectStatic.query.filter_by(user_id=user.id, subject_codename=subject.codename).first()
-
+    solve = 0
+    unsolve = 0
     if subject_stat:
+        # clear old tasks
+        count = db.session.query(Subject, SessionTasks, TaskSolve).filter(Subject.codename == subject.codename)
+        count = count.join(SessionTasks).join(TaskSolve).filter(TaskSolve.user_id == user.id).count()
+        if count > 120:
+            # query = db.session.query(Subject, SessionTasks).filter(Subject.codename == subject.codename)
+            query = db.session.query(SessionTasks).filter(SessionTasks.subject_id == subject.id) \
+                .order_by(SessionTasks.date.asc()).all()
+            for st in query:
+                if count > 120:
+                    for i in st.task_solve_id:
+                        if i.solve:
+                            solve += 1
+                        else:
+                            unsolve += 1
+                    count -= len(st.task_solve_id)
+                    del_query = db.session.query(TaskSolve).filter(TaskSolve.session_id == st.id)
+                    del_query.delete()
+                    del_query = db.session.query(SessionTasks).filter(SessionTasks.id == st.id)
+                    del_query.delete()
+                    db.session.commit()
+        #             delete old tests
+        count = db.session.query(TestSolve).filter(TestSolve.subject_id == subject.id, TestSolve.type == 2).count()
+        if count > 20:
+            # query = db.session.query(Subject, SessionTasks).filter(Subject.codename == subject.codename)
+            query = db.session.query(TestSolve).filter(TestSolve.subject_id == subject.id) \
+                .order_by(TestSolve.alltime.asc()).all()
+            for st in query:
+                if count > 20:
+                    count -= 1
+                    del_query = db.session.query(TestTask).filter(TestTask.test_id == st.id)
+                    del_query.delete()
+                    del_query = db.session.query(TestSolve).filter(TestSolve.id == st.id)
+                    del_query.delete()
+                    db.session.commit()
+
         # update_middle_test_count
         query = db.session.query(TestSolve).filter_by(subject_id=subject.id, user_id=user.id, type=1).all()
         sum = 0
         count = len(query)
         for i in query:
-            sum += i.count
+            sum += i.countF
         if count == 0: count = 1
         test_balls = int(sum/count)
 
@@ -96,7 +132,8 @@ def update_subject_static(user, subject):
         subject_stat.date_reload = time.time()
         subject_stat.last_tasks_hardest = json.dumps(last)
         subject_stat.static_tasks_hardest = json.dumps(table_future_task)
-
+        subject_stat.solve_delete_tasks += solve
+        subject_stat.unsolve_delete_tasks += unsolve
         subject_stat.time_for_update = round(time.time()-big_time, 4)
         db.session.commit()
 

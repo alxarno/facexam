@@ -26,7 +26,7 @@ class User(db.Model):
     test_solve = db.relationship('TestSolve', backref='user')
     sessions_task = db.relationship('SessionTasks', backref='user')
     subjects_statics = db.relationship('SubjectStatic', backref='user')
-
+    general_reports = db.relationship('UserReport', backref='user')
     reports = db.relationship('Issue', backref='user')
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
@@ -158,4 +158,12 @@ class UserActivity(db.Model):
         return '<UserActivity %r>' % self.user_id
 
 
-
+class UserReport(db.Model):
+    __tablename__ = 'user_report'
+    id = db.Column(db.Integer, primary_key=True)
+    # 1=ever, 2=with some page
+    type = db.Column(db.Integer, default=1)
+    page = db.Column(db.String())
+    content = db.Column(db.String())
+    browser = db.Column(db.String())
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))

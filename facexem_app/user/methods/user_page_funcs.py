@@ -179,13 +179,16 @@ def user_get_last_actions(user):
                 if i['content'].solve == 1:
                     word = 'Решен'
                     img = "/icon/flask"
-                final.append({
-                    "text": word + " тест по предмету " + subject.name + " на "
-                            + str(round(i['content'].hundred_value)) + " баллов из "
-                            + str(round(i['content'].hundred_need_count)),
-                    "img": img,
-                    "link": "/"+subject.codename + "/mytest/" + str(i['content'].id)
-                })
+                try:
+                    final.append({
+                        "text": word + " тест по предмету " + subject.name + " на "
+                                + str(round(i['content'].hundred_value)) + " баллов из "
+                                + str(round(i['content'].hundred_need_count)),
+                        "img": img,
+                        "link": "/"+subject.codename + "/mytest/" + str(i['content'].id)
+                    })
+                except:
+                    None
     return final
 
 

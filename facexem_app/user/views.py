@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 
 from flask import Blueprint, redirect, url_for, request, jsonify, session
 
-from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic
+from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic, UserReport
 from ..extensions import db
 from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks,TestSolve
 from .methods import somefuncs, user_page_funcs, subject_page_funcs, user_test
@@ -667,7 +667,7 @@ def get_mypage(now_user):
 @user.route('/get_my_settings', methods=['POST'])
 @verification_user
 def get_settings(now_user):
-    return jsonify({'key': now_user.public_key})
+    return jsonify({'key': now_user.public_key, 'name': now_user.name})
 
 
 @user.route('/get_test_info', methods=['POST'])
@@ -683,3 +683,33 @@ def get_test_info(now_user):
         return jsonify(subject_page_funcs.get_tests_info(now_user, subject))
     else:
         return jsonify({"result": 'Error', "type": 'Subject is undefined'})
+
+
+@user.route('/save_settings', methods=['POST'])
+@verification_user
+def save_settings(now_user):
+    try:
+        data = json.loads(request.data)
+        name = data['name']
+    except:
+        return jsonify({"result": 'Error', "type": 'Name is required'})
+    now_user.name = name
+    db.session.commit()
+    return jsonify({"result": 'Success'})
+
+
+@user.route('/set_general_report', methods=['POST'])
+@verification_user
+def set_general_report(now_user):
+    try:
+        data = json.loads(request.data)
+        type = data['type']
+        page = data['page']
+        content = data['content']
+        browser = data['browser']
+    except:
+        return jsonify({"result": 'Error', "type": 'Name, Type, Page, Content are required'})
+    report = UserReport(type=type, page=page, content=content, browser=browser, user_id=now_user.id)
+    db.session.add(report)
+    db.session.commit()
+    return jsonify({"result": 'Success'})

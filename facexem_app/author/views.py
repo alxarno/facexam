@@ -29,7 +29,7 @@ def verification_author(f):
             else:
                 return jsonify({"result": 'Error', "type": 'Author is required'})
         except:
-            return jsonify({"result": 'Error', "type": 'verification is fail'})
+            return jsonify({"result": 'Error', "type": 'Verification is fail'})
     return wrapper
 
 
@@ -67,7 +67,7 @@ def login():
         if user:
             author = Author.query.filter_by(user_id=user.id).first()
             if author:
-                key = jwt.encode({'public': author.token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=120)},
+                key = jwt.encode({'public': author.token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=12000)},
                                  SECRET_KEY)
                 session['a_token'] = key.decode('UTF-8')
                 return jsonify(key.decode('UTF-8'))
@@ -116,12 +116,16 @@ def my_subjects(wr_user):
         subject = Subject.query.filter_by(codename=i).first()
         count = Task.query.filter_by(subject_id=subject.id).count()
         if subject:
-            final.append({
-                    "codename": subject.codename,
-                    "name": subject.name,
-                    "count": count,
-                    "points": json.loads(subject.system_points)
-                })
+            try:
+                final.append({
+                        "codename": subject.codename,
+                        "name": subject.name,
+                        "count": count,
+                        "points": json.loads(subject.system_points),
+                        "themes": json.loads(subject.additional_themes)
+                    })
+            except:
+                None
     return jsonify(final)
 
 
@@ -185,11 +189,12 @@ def create_task(wr_user):
         data = json.loads(request.data)
         number = data['number']
         codename = data['codename']
+        themes = data['themes']
     except:
         return jsonify(result='Error')
     subject = Subject.query.filter_by(codename=codename).first()
     if subject:
-        task = Task(number=number, open=0, subject_id=subject.id, author_id=wr_user.id)
+        task = Task(number=number, open=0, subject_id=subject.id, author_id=wr_user.id, themes=json.dumps(themes))
         db.session.add(task)
         db.session.commit()
         content = Content(content=json.dumps([{'type': "mainquest", 'content': []}]), description=json.dumps([]),
@@ -278,6 +283,7 @@ def save_task_content(wr_user):
         content_task.answers = json.dumps(content['answers'])
         db.session.commit()
         return jsonify(result='Success')
+    return jsonify({"result": 'Error', "type": 'Task is undefined'})
 
 
 @author.route('/get_task_content', methods=['POST'])
@@ -294,6 +300,7 @@ def get_task_content(wr_user):
                   'description': content_task.description,
                   'answers': content_task.answers}
         return jsonify(answer)
+    return jsonify({"result": 'Error', "type": 'Task is undefined'})
 
 
 @author.route('/delete_task', methods=['POST'])
