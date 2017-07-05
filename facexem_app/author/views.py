@@ -213,6 +213,7 @@ def create_task(wr_user):
 @verification_author
 def task_images(wr_user, id):
     task = Task.query.filter_by(id=id).first()
+    print(task)
     if task:
         path = TASK_FOLDER + '/' + id
         print(path)

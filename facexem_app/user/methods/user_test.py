@@ -56,6 +56,8 @@ def check_test(user, answers, subject, u_time):
         count = 0
         user_answer = answers[str(t.id)]
         real_answer = json.loads(c.answers)
+        print(user_answer)
+        print(real_answer)
         for i in range(len(real_answer)):
             try:
                 if user_answer[i] == real_answer[i]:

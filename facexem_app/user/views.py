@@ -1,5 +1,5 @@
 from datetime import datetime
-import random, hashlib, time, json, smtplib, jwt, datetime
+import random, hashlib, time, json, smtplib, jwt, datetime, os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -10,8 +10,10 @@ from ..extensions import db
 from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks,TestSolve
 from .methods import somefuncs, user_page_funcs, subject_page_funcs, user_test
 from ..achievements.models import Achievement
-from config import SECRET_KEY
+from config import SECRET_KEY, USER_AVATARS
 from functools import wraps
+import urllib.request
+import urllib.parse
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
@@ -79,6 +81,48 @@ def create_user():
         return jsonify(result="Error")
 
 
+@user.route('/vk', methods=['GET'])
+def vk():
+    code = request.args.get('code')
+    app_id = '6101703'
+    vk_secret = 'ZgSUUrBlC0bYfkxYILJS'
+    redirect_url = "http://127.0.0.1:9999/api/user/vk"
+    main_url = "https://api.vk.com/oauth/access_token?client_id="+app_id
+    main_url += "&client_secret="+vk_secret+"&code="+code+"&redirect_uri="+redirect_url
+    print(main_url)
+    try:
+        response = urllib.request.urlopen(main_url)
+        answer = json.loads(response.read().decode("utf-8"))
+    except Exception as e:
+        return jsonify({'result': 'Error', 'type': 'Main auth vk is failed'})
+    vk_access_token = answer['access_token']
+    vk_uid = answer['user_id']
+    user = User.query.filter_by(vk_id=vk_uid).first()
+    if user:
+        token = user.token
+        key = jwt.encode({'public': token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=43200)},
+                         SECRET_KEY)
+        session['token'] = key.decode('UTF-8')
+        return redirect("http://127.0.0.1:9999/mypage")
+    else:
+        info_url = "https://api.vk.com/method/users.get?uids="+str(vk_uid)+"&access_token="+str(vk_access_token)+"&fields=uid,first_name,last_name"
+        try:
+            answer = urllib.request.urlopen(info_url)
+            answer = json.loads(answer.read().decode("utf-8"))
+        except:
+            return jsonify({'result': 'Error', 'type': 'Get user vk is failed'})
+        user_info = answer['response'][0]
+        new_user = User(user_info['first_name']+' '+user_info['last_name'], None, None,None,vk_uid)
+        db.session.add(new_user)
+        db.session.commit()
+        token = new_user.token
+        token = jwt.encode({'public': token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=43200)},
+                           SECRET_KEY)
+        session['token'] = token.decode('UTF-8')
+        return redirect("http://127.0.0.1:9999/create-profile")
+
+
+
 @user.route('/prove-email/<key>', methods=['GET'])
 def prove_email(key):
     if key:
@@ -87,7 +131,9 @@ def prove_email(key):
             new_user = User(created_user.name, created_user.password, created_user.email)
             db.session.add(new_user)
             token = new_user.token
-            session['token'] = token
+            token = jwt.encode({'public': token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=43200)},
+                             SECRET_KEY)
+            session['token'] = token.decode('UTF-8')
             session.pop('test_email', None)
             TestUser.query.filter_by(key=key).delete()
             db.session.commit()
@@ -99,8 +145,10 @@ def prove_email(key):
 
 
 @user.route('/done_create_page', methods=['POST'])
-def done_create_page():
-    user = verif_user()
+@verification_user
+def done_create_page(now_user):
+    # user = verif_user()
+    user = now_user
     if user:
         if user.profile_done == 0:
             try:
@@ -213,6 +261,16 @@ def logout():
 @verification_user
 def get_page_info(now_user):
     return jsonify(user_page_funcs.user_get_page_info(now_user))
+
+
+@user.route('/get_change_data', methods=['POST'])
+@verification_user
+def get_change_data(now_user):
+    path = USER_AVATARS
+    if os.path.exists(path):
+        result = os.listdir(path)
+        return jsonify(result)
+    return jsonify({"result": 'Error', "type": 'Folder is required'})
 
 
 @user.route('/set_page_info', methods=['POST'])

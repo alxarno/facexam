@@ -53,6 +53,7 @@ def login():
         return app.send_static_file('enter/index.html')
 
 
+
 @app.route('/achiev/<smth>')
 def achievements(smth):
     return app.send_static_file('other/achievements/'+smth+'.png')
@@ -60,7 +61,7 @@ def achievements(smth):
 
 @app.route('/avatars/<smth>')
 def avatars(smth):
-    return app.send_static_file('other/avatars/'+smth+'.png')
+    return app.send_static_file('other/avatars/'+smth)
 
 
 @app.route('/task_img/<id>/<name>')
@@ -106,6 +107,7 @@ def get_smoth():
 @app.route('/create-profile', methods=['GET'])
 def create_profile():
     if 'token' in session:
+        print(session['token'])
         data_token = jwt.decode(session['token'], SECRET_KEY)
         user_token = data_token['public']
         user = User.query.filter_by(token=user_token).first()

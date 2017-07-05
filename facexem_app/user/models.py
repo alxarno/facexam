@@ -31,7 +31,8 @@ class User(db.Model):
 
     def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
         self.name = name
-        self.set_password(password)
+        if password:
+            self.set_password(password)
         if vk_id:
             self.set_token(vk_id, SECRET_KEY)
             self.set_public_key(vk_id, SECRET_KEY)
@@ -48,7 +49,7 @@ class User(db.Model):
 
     def set_public_key(self, smth_id, secret):
         t = time.time()
-        self.public_key = hashlib.md5(smth_id.encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
+        self.public_key = hashlib.md5(str(smth_id).encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
 
     def set_password(self, password):
         self.pw_hash = generate_password_hash(password)
@@ -58,7 +59,7 @@ class User(db.Model):
 
     def set_token(self, smth_id, secret):
         t = time.time()
-        self.token = hashlib.sha1(smth_id.encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
+        self.token = hashlib.sha1(str(smth_id).encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
 
     def set_google_id(self, google_id):
         self.google_id = google_id

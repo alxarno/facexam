@@ -134,26 +134,24 @@ def user_get_preference(user):
 
 def user_get_last_actions(user):
     query_task = db.session.query(SessionTasks).order_by(SessionTasks.date.desc()).limit(7).all()
-    some_query = db.session.query(TestSolve).order_by(TestSolve.alltime.desc()).limit(7).all()
+    some_query = db.session.query(TestSolve).order_by(TestSolve.date.desc()).limit(7).all()
     all=[]
     for i in query_task:
-        try:
-            i.alltime = i.date
-        except:
-            None
         all.append({'type': 'few_tasks', "content": i})
     for i in some_query:
         all.append({'type': 'test', "content": i})
+    print(some_query)
     for i in range(len(all)):
         for y in range(len(all)):
             if i != y:
-                if all[i]['content'].alltime > all[y]['content'].alltime:
+                if all[i]['content'].date > all[y]['content'].date:
                     c = all[i]
                     all[i] = all[y]
                     all[y] = c
 
     final = []
     for i in all[:6]:
+
         if i['type'] == 'few_tasks':
             subject = db.session.query(Subject).filter_by(id=i['content'].subject_id).first()
             # tasks = db.session.query(Task, Subject).filter(Task.id == i['content'].task_id)
@@ -179,16 +177,16 @@ def user_get_last_actions(user):
                 if i['content'].solve == 1:
                     word = 'Решен'
                     img = "/icon/flask"
-                try:
-                    final.append({
-                        "text": word + " тест по предмету " + subject.name + " на "
-                                + str(round(i['content'].hundred_value)) + " баллов из "
-                                + str(round(i['content'].hundred_need_count)),
-                        "img": img,
-                        "link": "/"+subject.codename + "/mytest/" + str(i['content'].id)
-                    })
-                except:
-                    None
+                # try:
+                final.append({
+                    "text": word + " тест по предмету " + subject.name + " на "
+                            + str(round(i['content'].hundred_value)) + " баллов из "
+                            + str(round(i['content'].hundred_need_count)),
+                    "img": img,
+                    "link": "/"+subject.codename + "/mytest/" + str(i['content'].id)
+                })
+                # except:
+                #     None
     return final
 
 

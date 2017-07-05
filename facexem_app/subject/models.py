@@ -101,9 +101,12 @@ class TestSolve(db.Model):
     hundred_value = db.Column(db.Integer())
     hundred_need_count = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
-    alltime = db.Column(db.Integer())
+    date = db.Column(db.Integer())
     tasks = db.relationship('TestTask', backref='test')
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<TestSolve %r>' % self.id
 
 
 class TestTask(db.Model):
