@@ -12,6 +12,7 @@ class Subject(db.Model):
     achievements = db.relationship('Achievement', backref='subject')
     challenges = db.relationship('Challenge', backref='subject')
     sessions = db.relationship('SessionTasks', backref='subject')
+    static_tests = db.relationship('StaticTest', backref='subject')
     time_pass = db.Column(db.Integer())
     min_point_test = db.Column(db.Integer())
     additional_themes = db.Column(db.String(256))
@@ -20,10 +21,12 @@ class Subject(db.Model):
 class Task(db.Model):
     __tablename__ = "subjects_tasks"
     id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, index=True)
     number = db.Column(db.Integer())
     open = db.Column(db.Integer())
     subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
     author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
+    # static_test = db.Column(db.Integer(), db.ForeignKey('static_test.id'))
     content = db.relationship('Content', backref='task')
     themes = db.Column(db.String(256))
     issues = db.relationship('Issue', backref='issue')
@@ -87,6 +90,15 @@ class SessionTasks(db.Model):
     key = db.Column(db.String(50))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     task_solve_id = db.relationship('TaskSolve', backref='task_solve')
+
+
+class StaticTest(db.Model):
+    __tablename__ = 'static_test'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, index=True)
+    tasks = db.Column(db.String(256))
+    subject_id = db.Column(db.Integer(), db.ForeignKey('subjects.id'))
+    author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))
 
 
 class TestSolve(db.Model):

@@ -3,8 +3,8 @@ import json,jwt, datetime
 import time
 from ..user.models import User, TestUser, UserPage,  UserActivity, SubjectStatic
 from ..extensions import db
-from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve
-from .models import Author
+from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, StaticTest
+from .models import Author, AuthorStatistic
 from ..achievements.models import Achievement
 from ..user.constans import ROLES
 from config import ADMIN_KEY, AUTHOR_KEY, SECRET_KEY
@@ -24,12 +24,12 @@ def verification_author(f):
             data_token = jwt.decode(token, SECRET_KEY)
             user_token = data_token['public']
             now_user = Author.query.filter_by(token=user_token).first()
-            if now_user:
-                return f(now_user, *args, **kwargs)
-            else:
-                return jsonify({"result": 'Error', "type": 'Author is required'})
         except:
             return jsonify({"result": 'Error', "type": 'Verification is fail'})
+        if now_user:
+            return f(now_user, *args, **kwargs)
+        else:
+            return jsonify({"result": 'Error', "type": 'Author is required'})
     return wrapper
 
 
@@ -167,6 +167,13 @@ def my_tasks(wr_user):
     tasks = Task.query.filter_by(author_id=wr_user.id).all()
     final = []
     subjects = {}
+    staticTest = StaticTest.query.all()
+    reserve_tasks = []
+    for i in staticTest:
+        tasks = json.loads(i.tasks)
+        for y in tasks:
+            if y not in reserve_tasks:
+                reserve_tasks.append(y)
     for i in tasks:
         if i.subject_id in subjects:
             subject = subjects[i.subject_id]
@@ -177,9 +184,16 @@ def my_tasks(wr_user):
                 subjects[i.subject_id] = subject
             else:
                 subject = 'Error'
-        final.append({"id": i.id, "number": i.number, "subject": subject, "open": i.open})
+        try:
+            date = i.date.strftime('%m.%d.%Y')
+        except:
+            date = 'None'
+        reserve = False
+        if i.id in reserve_tasks:
+            reserve = True
+        final.append({"id": i.id, "number": i.number, "subject": subject,
+                    "open": i.open, "date": date, 'use_in_static_test': reserve})
     return jsonify(final)
-
 
 
 @author.route('/create_task', methods=['POST'])
@@ -194,7 +208,8 @@ def create_task(wr_user):
         return jsonify(result='Error')
     subject = Subject.query.filter_by(codename=codename).first()
     if subject:
-        task = Task(number=number, open=0, subject_id=subject.id, author_id=wr_user.id, themes=json.dumps(themes))
+        task = Task(number=number, open=0, subject_id=subject.id, date=datetime.datetime.now(),
+                    author_id=wr_user.id, themes=json.dumps(themes))
         db.session.add(task)
         db.session.commit()
         content = Content(content=json.dumps([{'type': "mainquest", 'content': []}]), description=json.dumps([]),
@@ -341,13 +356,17 @@ def delete_task(wr_user):
 @author.route('/query_task', methods=['POST'])
 @verification_author
 def query_task(wr_user):
-    try:
-        data = json.loads(request.data)
-        id = data['id']
-        number = data['number']
-        subject = data['subject']
-    except:
-        return jsonify(result='Error: data uncomplete')
+    data = json.loads(request.data)
+    id = data['id']
+    number = data['number']
+    subject = data['subject']
+    staticTest = StaticTest.query.all()
+    reserve_tasks = []
+    for i in staticTest:
+        tasks = json.loads(i.tasks)
+        for y in tasks:
+            if y not in reserve_tasks:
+                reserve_tasks.append(y)
     tasks = []
     final=[]
     if id != '':
@@ -361,10 +380,24 @@ def query_task(wr_user):
         subject = Subject.query.filter_by(codename=subject).first()
         tasks = Task.query.filter_by(subject_id=subject.id)
         final = []
+    subjects = {}
     for i in tasks:
         if i:
-            subject = Subject.query.filter_by(id=i.subject_id).first()
-            final.append({'id': i.id, 'number': i.number, 'open': i.open, 'subject': subject.codename})
+            reserve = False
+            if i.id in reserve_tasks:
+                reserve = True
+            if subjects.get(str(i.subject_id)):
+                subject = subjects[str(i.subject_id)]
+            else:
+                subject = Subject.query.filter_by(id=i.subject_id).first()
+                subjects[str(i.subject_id)] = subject
+            try:
+                date = i.date.strftime('%m.%d.%Y')
+            except:
+                date = 'None'
+            final.append({'id': i.id, 'number': i.number, 'open': i.open,
+                          'subject': subject.codename, 'subject_name': subject.name,
+                          'use_in_static_test': reserve, 'date': date})
     return jsonify(final)
 
 
@@ -498,3 +531,46 @@ def get_all():
         final.append({'id': i.id, 'name': i.name, 'content': i.content, 'type': i.type,
                       'subject_id': i.subject_id, 'user_id': i.user_id})
     return jsonify(final)
+
+
+@author.route('/get_my_static', methods=['POST'])
+@verification_author
+def get_my_static(wr_user):
+    au_statistic = AuthorStatistic.query.filter_by(author_id=wr_user.id).first()
+    now = datetime.datetime.now()
+    if au_statistic:
+        last_dates = {}
+        dates = []
+        values =[]
+        global_static = json.loads(au_statistic.last_data)
+        for i in range(6, -1, -1):
+            newdate = now - datetime.timedelta(days=i)
+            newdate = "{}.{}.{}".format(newdate.day, newdate.month, newdate.year)
+            last_dates[newdate] = 0
+        for i in last_dates.keys():
+            if global_static.get(i): last_dates[i] = global_static.get(i)
+            dates.append(i)
+            values.append(last_dates[i])
+        static_tests = StaticTest.query.filter_by(author_id=wr_user.id).count()
+        return jsonify({'solve_tasks': au_statistic.solve_tasks,
+                        'create_tasks': len(wr_user.tasks),
+                        'static_tests': static_tests,
+                        'dates': {'dates': dates, 'values': values}})
+    return jsonify({'result': 'Error', 'type': 'Author is required'})
+
+
+@author.route('/create_static_test', methods=['POST'])
+@verification_author
+def create_static_test(wr_user):
+    data = json.loads(request.data)
+    try:
+        ids = data['ids']
+    except:
+        return jsonify({'result': 'Error', 'type': 'Tasks ids are required'})
+    real_ids = db.session.query(Task).filter(Task.id.in_(ids)).count()
+    if real_ids == len(ids):
+        static = StaticTest(date=datetime.datetime.now(), tasks=json.dumps(ids), author_id=wr_user.id)
+        db.session.add(static)
+        db.commit()
+        return jsonify({'result': 'Success'})
+    return jsonify({'result': 'Error', 'type': 'Author is required'})

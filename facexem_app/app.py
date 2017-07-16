@@ -71,7 +71,7 @@ def task_img(name, id):
 
 @app.route('/bg/<smth>')
 def backgrounds(smth):
-    return app.send_static_file('other/backgrounds/'+smth+'.png')
+    return app.send_static_file('other/backgrounds/'+smth)
 
 
 @app.route('/icon/<smth>')
@@ -113,11 +113,43 @@ def create_profile():
         user = User.query.filter_by(token=user_token).first()
         if user:
             if user.profile_done == 0:
-                return app.send_static_file('log-in/index.html')
+                return app.send_static_file('create-profile/index.html')
             else:
                 return redirect(url_for('main'))
         else:
             return redirect(url_for('login'))
+    else:
+        return redirect(url_for('login'))
+
+
+@app.route('/<smth>',  methods=['GET'])
+def somewhere1(smth):
+    if 'token' in session:
+        data_token = jwt.decode(session['token'], SECRET_KEY)
+        user_token = data_token['public']
+        user = User.query.filter_by(token=user_token).first()
+        if user:
+            if user.profile_done == 0:
+                return redirect(url_for('create_profile'))
+            else:
+                return app.send_static_file('user/index.html')
+        return redirect(url_for('login'))
+    else:
+        return redirect(url_for('login'))
+
+
+@app.route('/<smth>/<smth2>',  methods=['GET'])
+def somewhere2(smth, smth2):
+    if 'token' in session:
+        data_token = jwt.decode(session['token'], SECRET_KEY)
+        user_token = data_token['public']
+        user = User.query.filter_by(token=user_token).first()
+        if user:
+            if user.profile_done == 0:
+                return redirect(url_for('create_profile'))
+            else:
+                return app.send_static_file('user/index.html')
+        return redirect(url_for('login'))
     else:
         return redirect(url_for('login'))
 

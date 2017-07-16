@@ -41,13 +41,13 @@ def get_user_task(user, subject, number, count):
     return final
 
 
-def check_test(user, answers, subject, u_time):
+def check_test(user, answers, subject, u_time, type):
     ids = list(answers.keys())
     table = json.loads(subject.system_points)
     counts = []
     query = db.session.query(Task, Content).filter(Task.id.in_(ids))
     query = query.join(Content).all()
-    test = TestSolve(time=u_time, count=0, type=2, solve=0, subject_id=subject.id, alltime=time.time(), user_id=user.id)
+    test = TestSolve(time=u_time, count=0, type=type, solve=0, subject_id=subject.id, date=time.time(), user_id=user.id)
     db.session.add(test)
     db.session.commit()
     all_count = 0

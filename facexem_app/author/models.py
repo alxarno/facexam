@@ -16,6 +16,8 @@ class Author(db.Model):
     subjects = db.Column(db.String(255))
     user_id = db.Column(db.Integer(), nullable=False)
     tasks = db.relationship('Task', backref='author')
+    statistic = db.relationship('AuthorStatistic', backref='author')
+    static_tests = db.relationship('StaticTest', backref='author')
 
     def __init__(self, subjects=json.dumps([]), user_id=None):
         self.set_token(user_id)
@@ -27,3 +29,12 @@ class Author(db.Model):
         t = time.time()
         body = str(id).encode('utf8') + SECRET_KEY.encode('utf8')+str(t).encode('utf8')
         self.token = hashlib.sha1(body).hexdigest()
+
+
+class AuthorStatistic(db.Model):
+    __tablename__ = "authors_statistic"
+    id = db.Column(db.Integer, primary_key=True)
+    solve_tasks = db.Column(db.Integer(), default=0)
+    time_reload = db.Column(db.Integer(), default=0)
+    last_data = db.Column(db.String(), default='[]')
+    author_id = db.Column(db.Integer(), db.ForeignKey('authors.id'))

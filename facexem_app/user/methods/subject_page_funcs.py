@@ -17,12 +17,12 @@ def update_subject_static(user, subject):
         # clear old tasks
         count = db.session.query(Subject, SessionTasks, TaskSolve).filter(Subject.codename == subject.codename)
         count = count.join(SessionTasks).join(TaskSolve).filter(TaskSolve.user_id == user.id).count()
-        if count > 120:
+        if count > 150:
             # query = db.session.query(Subject, SessionTasks).filter(Subject.codename == subject.codename)
             query = db.session.query(SessionTasks).filter(SessionTasks.subject_id == subject.id) \
                 .order_by(SessionTasks.date.asc()).all()
             for st in query:
-                if count > 120:
+                if count > 150:
                     for i in st.task_solve_id:
                         if i.solve:
                             solve += 1
@@ -54,7 +54,7 @@ def update_subject_static(user, subject):
         sum = 0
         count = len(query)
         for i in query:
-            sum += i.countF
+            sum += i.count
         if count == 0: count = 1
         test_balls = int(sum/count)
 
@@ -92,18 +92,54 @@ def update_subject_static(user, subject):
         query = query.join(TaskSolve).filter(TaskSolve.user_id == user.id).all()
         table = json.loads(subject.system_points)
         table_future_task = []
+        themes = []
+        list_themes = {}
         for i in range(len(table)):
             table_future_task.append({'num': i+1, 'theme': table[i]['theme'],
                                       'solve': 0, 'unsolve': 0, 'procent': 0, 'all_time': 0,
                                       'color': 'yellow'})
+            themes.append({'name': table[i]['theme'], 'link': table[i]['link'],
+                           'solve': 0, 'unsolve': 0, 'color': 'yellow'})
+            list_themes[str(table[i]['theme'])] = len(list_themes.keys())-1
+        for i in json.loads(subject.additional_themes):
+            themes.append({'name': i['name'], 'link': i['link'],
+                           'solve': 0, 'unsolve': 0, 'color': 'yellow'})
+            list_themes[i['name']] = len(list_themes.keys()) - 1
         for s, t, ts in query:
             if ts.solve == 1:
                 table_future_task[t.number - 1]['solve'] += 1
+                try:
+                    index = list_themes[table_future_task[t.number - 1]['theme']]
+                    themes[index]['solve'] += 1
+                    for i in json.loads(t.themes):
+                        index = list_themes[i]
+                        themes[index]['solve'] += 1
+                except:
+                    None
             else:
                 table_future_task[t.number - 1]['unsolve'] += 1
+                try:
+                    index = list_themes[table_future_task[t.number - 1]['theme']]
+                    themes[index]['unsolve'] += 1
+                    for i in json.loads(t.themes):
+                        index = list_themes[i]
+                        themes[index]['unsolve'] += 1
+                except:
+                    None
             table_future_task[t.number - 1]['all_time'] += ts.time
 
         for y in table_future_task:
+            if y['unsolve'] != 0:
+                # You are asking yourself: "Why this miracle guy, wrote this 2?", and i'm answering:
+                # "Because solve tasks'es count must be more then unsolve tasks in two times" :)
+                y['procent'] = round((y['solve']/2) / y['unsolve'], 2)
+                if y['procent']>1: y['procent'] = 1
+            elif y['solve'] != 0: y['procent'] = 1
+            else : y['procent'] = 0
+            if y['procent'] < 0.3: y['color'] ='red'
+            elif y['procent'] >= 0.7 : y['color'] = 'green'
+
+        for y in themes:
             if y['unsolve'] != 0:
                 # You are asking yourself: "Why this miracle guy, wrote this 2?", and i'm answering:
                 # "Because solve tasks'es count must be more then unsolve tasks in two times" :)
@@ -134,6 +170,8 @@ def update_subject_static(user, subject):
         subject_stat.static_tasks_hardest = json.dumps(table_future_task)
         subject_stat.solve_delete_tasks += solve
         subject_stat.unsolve_delete_tasks += unsolve
+        subject_stat.last_themes_result = subject_stat.themes_result
+        subject_stat.themes_result = json.dumps(themes)
         subject_stat.time_for_update = round(time.time()-big_time, 4)
         db.session.commit()
 
@@ -156,14 +194,20 @@ def task_info(user, subject):
                     solve_tasks += 1
                 else:
                     unsolve_tasks += 1
-            # query = db.session.query(Subject, TestSolve).filter(Subject.codename == subject.codename)
-            # query = query.join(TestSolve).filter(TestSolve.user_id == user.id).count()
             tests = TestSolve.query.filter_by(user_id=user.id, subject_id=subject.id).count()
+            last_themes = subject_stat.last_themes_result
+            if not last_themes:
+                last_themes = '[]'
+            themes = subject_stat.themes_result
+            if not themes:
+                themes = '[]'
             return ({"best_task_random": subject_stat.best_session_list,
                      "test_points": subject_stat.test_points,
                      "mid_time": subject_stat.last_random_task_time,
                      "solve_tasks": solve_tasks,
                      "unsolve_tasks": unsolve_tasks,
+                     "themes": json.loads(themes),
+                     "last_themes": json.loads(last_themes),
                      "count_tests": tests,
                      "task_table": json.loads(subject_stat.static_tasks_hardest),
                      "last_task_procents": json.loads(subject_stat.last_tasks_hardest)})
@@ -222,6 +266,11 @@ def get_subject_activity(user, subject):
 def get_tests_info(user, subject):
     # get middle time
     tests = db.session.query(TestSolve).filter_by(subject_id=subject.id, user_id=user.id, type=1).all()
+    if len(tests)<5:
+        return {'result': 'Error',
+                'type': 'Less',
+                'need': 5,
+                'have': len(tests)}
     sum_time = 0
     sum_points = 0
     for i in tests:
@@ -240,11 +289,13 @@ def get_tests_info(user, subject):
                                                                TestSolve.user_id == user.id, TestSolve.type == 1)
     query = query.join(TestTask).join(Task)
     for ts, tt, t in query:
+        if not str(t.number) in numbers.keys():
+            numbers[str(t.number)] = {'solve_tasks': 0, 'count': 0, 'need_count': 0, 'theme': 0, 'unsolve_tasks':0}
         numbers[str(t.number)]['solve_tasks'] += tt.solve
         numbers[str(t.number)]['count'] += tt.count
         if not numbers[str(t.number)]['need_count']:
-            numbers[str(t.number)]['need_count'] = system_points[t.number]['count']
-            numbers[str(t.number)]['theme'] = system_points[t.number]['theme']
+            numbers[str(t.number)]['need_count'] = system_points[t.number-1]['count']
+            numbers[str(t.number)]['theme'] = system_points[t.number-1]['theme']
         if tt.solve == 0:
             numbers[str(t.number)]['unsolve_tasks'] += 1
     for i in numbers.keys():
@@ -253,4 +304,5 @@ def get_tests_info(user, subject):
 
     return {"middle_time": middle_time,
             "middle_point": middle_point,
-            "number_info": numbers}
+            "number_info": numbers,
+            "test": len(tests)}

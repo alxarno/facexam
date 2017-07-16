@@ -2,27 +2,30 @@ from datetime import datetime
 import random, hashlib, time, json, smtplib, jwt, datetime, os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
 from flask import Blueprint, redirect, url_for, request, jsonify, session
+from ..author.models import AuthorStatistic
 
+from ..admin.models import AppStatic
 from .models import User, TestUser, UserPage,  UserActivity, SubjectStatic, UserReport
 from ..extensions import db
 from ..subject.models import Subject, Task, Challenge, Content, Issue, TaskSolve, SessionTasks,TestSolve
 from .methods import somefuncs, user_page_funcs, subject_page_funcs, user_test
 from ..achievements.models import Achievement
-from config import SECRET_KEY, USER_AVATARS
+from config import SECRET_KEY, USER_AVATARS, USER_BACKGROUNDS
 from functools import wraps
 import urllib.request
 import urllib.parse
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 
-
 def verification_user(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         data = json.loads(request.data)
-        token = data['token']
+        try:
+            token = data['token']
+        except:
+            return jsonify({"result": 'Error', "type": 'Token is required'})
         data_token = jwt.decode(token, SECRET_KEY)
         user_token = data_token['public']
         now_user = User.query.filter_by(token=user_token).first()
@@ -89,7 +92,6 @@ def vk():
     redirect_url = "http://127.0.0.1:9999/api/user/vk"
     main_url = "https://api.vk.com/oauth/access_token?client_id="+app_id
     main_url += "&client_secret="+vk_secret+"&code="+code+"&redirect_uri="+redirect_url
-    print(main_url)
     try:
         response = urllib.request.urlopen(main_url)
         answer = json.loads(response.read().decode("utf-8"))
@@ -112,7 +114,7 @@ def vk():
         except:
             return jsonify({'result': 'Error', 'type': 'Get user vk is failed'})
         user_info = answer['response'][0]
-        new_user = User(user_info['first_name']+' '+user_info['last_name'], None, None,None,vk_uid)
+        new_user = User(user_info['first_name']+' '+user_info['last_name'], None, None, vk_uid, None, datetime.datetime.now())
         db.session.add(new_user)
         db.session.commit()
         token = new_user.token
@@ -122,13 +124,12 @@ def vk():
         return redirect("http://127.0.0.1:9999/create-profile")
 
 
-
 @user.route('/prove-email/<key>', methods=['GET'])
 def prove_email(key):
     if key:
         created_user = TestUser.query.filter_by(key=key).first()
         if created_user:
-            new_user = User(created_user.name, created_user.password, created_user.email)
+            new_user = User(created_user.name, created_user.password, created_user.email, None,None, datetime.datetime.now())
             db.session.add(new_user)
             token = new_user.token
             token = jwt.encode({'public': token, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=43200)},
@@ -144,44 +145,44 @@ def prove_email(key):
         return redirect("http://127.0.0.1:9999/login", code=302)
 
 
-@user.route('/done_create_page', methods=['POST'])
+@user.route('/done_create_user', methods=['POST'])
 @verification_user
-def done_create_page(now_user):
-    # user = verif_user()
-    user = now_user
-    if user:
-        if user.profile_done == 0:
-            try:
-                data = json.loads(request.data)
-                city = data['city']
-                about = data['about']
-                subjects = data['subjects']
-            except:
-                return jsonify(result="Error")
-            info = UserPage(photo='jeorge', city=city, about=about,
-                            user_active_achivs=json.dumps([]), user=user, experience=0, last_actions=json.dumps([]),
-                            user_achievements=json.dumps([]), user_active_background='/bg/wall1')
-            db.session.add(info)
-            count = 0
-            for i in subjects:
-                if count > 3:
-                    continue
-                subject = Subject.query.filter_by(codename=i).first()
-                if subject:
-                    user_static_subject = SubjectStatic(subject_codename=i, user=user, date_reload=0,\
-                                                        test_points=0, last_random_task_time=0, solve_delete_tasks=0,
-                                                        unsolve_delete_tasks=0, time_for_update=0,
-                                                        last_tasks_hardest=json.dumps([]),
-                                                        static_tasks_hardest=json.dumps([]), best_session_list=0)
-                    db.session.add(user_static_subject)
-                    count += 1
-            user.profile_done = 1
-            db.session.commit()
-            return jsonify(result="Success")
-        else:
-            return jsonify(result="Error")
+def done_create_user(now_user):
+    data = json.loads(request.data)
+    name = data['name']
+    city = data['city']
+    about = data['about']
+    bg = data['bg']
+    photo = data['photo']
+    sex = data['sex']
+    subjects = data['subjects']
+    if now_user.profile_done == 0:
+        now_user.sex = sex
+        now_user.name = name
+        info = UserPage(photo=photo, city=city, about=about,
+                        user_active_achivs=json.dumps([]),
+                        user=now_user, experience=0, last_actions=json.dumps([]),
+                        user_achievements=json.dumps([]), user_active_background=bg)
+        db.session.add(info)
+        count = 0
+        for i in subjects:
+            if count > 3:
+                continue
+            subject = Subject.query.filter_by(codename=i).first()
+            if subject:
+                user_static_subject = SubjectStatic(subject_codename=i, user=now_user, date_reload=0, \
+                                                    test_points=0, last_random_task_time=0, solve_delete_tasks=0,
+                                                    unsolve_delete_tasks=0, time_for_update=0,
+                                                    last_tasks_hardest=json.dumps([]), last_themes_result=json.dumps([]),
+                                                    themes_result=json.dumps([]),
+                                                    static_tasks_hardest=json.dumps([]), best_session_list=0)
+                db.session.add(user_static_subject)
+                count += 1
+        now_user.profile_done = 1
+        db.session.commit()
+        return jsonify(result="Success")
     else:
-        return jsonify(result="Error")
+        return jsonify({'result': 'Error', 'type': 'Profile already made'})
 
 
 @user.route('/delete', methods=['POST'])
@@ -266,11 +267,43 @@ def get_page_info(now_user):
 @user.route('/get_change_data', methods=['POST'])
 @verification_user
 def get_change_data(now_user):
-    path = USER_AVATARS
-    if os.path.exists(path):
-        result = os.listdir(path)
-        return jsonify(result)
-    return jsonify({"result": 'Error', "type": 'Folder is required'})
+    name = now_user.name
+    if not now_user:
+        name = ''
+    final = {"pics": [], "backgrounds": [], "subjects": [], "name": name}
+    if os.path.exists(USER_AVATARS):
+        if now_user.sex:
+            final['pics'] = os.listdir(USER_AVATARS+'/girl')
+        else:
+            final['pics'] = os.listdir(USER_AVATARS + '/boy')
+    if os.path.exists(USER_BACKGROUNDS):
+        final["backgrounds"] = os.listdir(USER_BACKGROUNDS)
+    subjects = Subject.query.filter_by(access=1).all()
+    for i in subjects:
+        final['subjects'].append({'name': i.name, 'codename': i.codename})
+    return jsonify(final)
+    # return jsonify({"result": 'Error', "type": 'Folder is required'})
+
+
+@user.route('/get_data_create_user', methods=['POST'])
+@verification_user
+def get_avatars_create_user(now_user):
+    name = now_user.name
+    if not name:
+        name = ''
+    sex = now_user.sex
+    if not sex:
+        sex = 0
+    final={'avatars':{'girls':[], "boys": []}, "backgrounds": [], "subjects": [], "name": name, 'sex': sex}
+    if os.path.exists(USER_AVATARS):
+            final['avatars']['girls'] = os.listdir(USER_AVATARS+'/girl')
+            final['avatars']['boys'] = os.listdir(USER_AVATARS + '/boy')
+    if os.path.exists(USER_BACKGROUNDS):
+            final["backgrounds"] = os.listdir(USER_BACKGROUNDS)
+    subjects = Subject.query.filter_by(access=1).all()
+    for i in subjects:
+        final['subjects'].append({'name': i.name, 'codename': i.codename})
+    return jsonify(final)
 
 
 @user.route('/set_page_info', methods=['POST'])
@@ -379,22 +412,22 @@ def get_activity(now_user):
     return jsonify(user_page_funcs.user_get_activity(now_user))
 
 
-@user.route('/change_design', methods=['POST'])
-def change_design():
-    data = json.loads(request.data)
-    users_data = data['user_data']
-    now_user = verif_user()
-    if now_user:
-        user_settings = now_user.info_page[0]
-        now_user.name = users_data['name']
-        user_settings.photo = users_data['photo']
-        user_settings.about = users_data['about']
-        user_settings.user_active_achivs = json.dumps(users_data['achivs'])
-        user_settings.user_active_background = users_data['background']
-        db.session.commit()
-        return jsonify(result="Success")
-    else:
-        return jsonify(result='Fail this token is havent')
+# @user.route('/change_design', methods=['POST'])
+# def change_design():
+#     data = json.loads(request.data)
+#     users_data = data['user_data']
+#     now_user = verif_user()
+#     if now_user:
+#         user_settings = now_user.info_page[0]
+#         now_user.name = users_data['name']
+#         user_settings.photo = users_data['photo']
+#         user_settings.about = users_data['about']
+#         user_settings.user_active_achivs = json.dumps(users_data['achivs'])
+#         user_settings.user_active_background = users_data['background']
+#         db.session.commit()
+#         return jsonify(result="Success")
+#     else:
+#         return jsonify(result='Fail this token is havent')
 
 
 @user.route('/get_last_actions', methods=['POST'])
@@ -403,10 +436,10 @@ def get_last_actions(now_user):
     return jsonify(user_page_funcs.user_get_last_actions(now_user))
 
 
-
 @user.route('/get_task', methods=['POST'])
 @verification_user
 def get_task(now_user):
+    n_time = time.time()
     try:
         data = json.loads(request.data)
         codename = data['subject']
@@ -452,6 +485,8 @@ def get_task(now_user):
             final_task = tasks[num_rnd_task]
             content = Content.query.filter_by(id=final_task.id).first()
             final_task = {'id': final_task.id, 'content': json.loads(content.content)}
+            # statistic
+            somefuncs.set_performance('get_task', n_time)
             return jsonify(final_task)
         else:
             return jsonify(result="Empty")
@@ -491,8 +526,31 @@ def get_answer(now_user):
     session_task = SessionTasks.query.filter_by(key=session_key, user_id=now_user.id).first()
     if session_task:
         task_solve = TaskSolve(time=user_time, count=count, solve=solve, alltime=all_time,
-                                user_id=now_user.id, task_id=content.task_id, type=type, session_id=session_task.id)
+                                user_id=now_user.id, task_id=content.task_id, type=type,
+                               session_id=session_task.id)
         db.session.add(task_solve)
+        task = Task.query.filter_by(id=content.task_id).first()
+        author_static = AuthorStatistic.query.filter_by(author_id=task.author_id).first()
+        #statistic for author
+        if author_static:
+            static = json.loads(author_static.last_data)
+            d = datetime.date.today()
+            fine = 0
+            for i in static.keys():
+                if i == "{}.{}.{}".format(d.day, d.month, d.year):
+                    static[i] += 1
+                    fine = 1
+            if fine == 0:
+                if len(static.keys()) > 6:
+                    new_static = {}
+                    count = 0
+                    for i in static.keys():
+                        if count > 1:
+                            new_static[i] = static[i]
+                            count += 1
+                    new_static["{}.{}.{}".format(d.day, d.month, d.year)] = 1
+            author_static.last_data = json.dumps(static)
+            author_static.solve_tasks += 1
         db.session.commit()
         # for i in range
         return jsonify(answer=right)
@@ -620,6 +678,7 @@ def global_static(now_user):
 @user.route('/get_test', methods=['POST'])
 @verification_user
 def get_test(now_user):
+    n_time = time.time()
     try:
         data =json.loads(request.data)
         counts = data['counts']
@@ -628,12 +687,17 @@ def get_test(now_user):
         return jsonify(result='Error')
     if counts == []:
         return jsonify(result='Error')
+    type = 2
+    if counts.count(1)==len(counts):
+        type = 1
     subject = Subject.query.filter_by(codename=subject).first()
     if subject:
         final = []
         for i in range(len(counts)):
             final += user_test.get_user_task(now_user, subject, i+1, counts[i])
-        return jsonify(final)
+        # statistic
+        somefuncs.set_performance('get_test', n_time)
+        return jsonify({'content': final, 'type': type})
 
 
 @user.route('/check-test', methods=['POST'])
@@ -644,11 +708,12 @@ def check_test(now_user):
         answers = data['answers']
         time = data['time']
         codename = data['codename']
+        type=data['type']
     except:
         return jsonify(result='Error')
     subject = Subject.query.filter_by(codename=codename).first()
     if subject:
-        final = user_test.check_test(now_user, answers, subject, time)
+        final = user_test.check_test(now_user, answers, subject, time, type)
         return jsonify(final)
 
 
@@ -698,17 +763,21 @@ def get_my_subject(now_user):
         subject_codename = data['subject']
     except:
         return jsonify(result='Error')
+    n_time = time.time()
     subject = Subject.query.filter_by(codename=subject_codename).first()
     if subject:
         task_info = subject_page_funcs.task_info(now_user, subject)
         test_info = subject_page_funcs.get_tests_info(now_user, subject)
         activity = subject_page_funcs.get_subject_activity(now_user, subject)
+    # statistics
+    somefuncs.set_performance('subject', n_time)
     return jsonify({"task_info": task_info, "activity": activity, "test_info": test_info})
 
 
 @user.route('/get_mypage', methods=['POST'])
 @verification_user
 def get_mypage(now_user):
+    n_time = time.time()
     funcs = user_page_funcs
     user_page_info = funcs.user_get_page_info(now_user)
     user_subjects = funcs.user_get_subjects(now_user)
@@ -719,6 +788,19 @@ def get_mypage(now_user):
     final = {"info": user_page_info, "subjects": user_subjects, "activity": user_activity,
                  "preference": user_preference, "actions": user_last_actions,
                  "global_activ": user_global_static, "notifs": []}
+    # statistic
+    statistic = AppStatic.query.first()
+    today = datetime.datetime.today()
+    today = datetime.date(today.year, today.month, today.day).strftime("%d.%m.%y")
+    active_static = json.loads(statistic.active_static)
+    if active_static.get(today):
+        if now_user.id not in active_static[today]:
+            active_static[today].append(now_user.id)
+    else:
+        active_static[today] = [now_user.id]
+    statistic.active_static = json.dumps(active_static)
+    db.session.commit()
+    somefuncs.set_performance('mypage', n_time)
     return jsonify(final)
 
 

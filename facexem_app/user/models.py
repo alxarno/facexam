@@ -17,7 +17,9 @@ class User(db.Model):
     token = db.Column(db.String(40),  default='')
     pw_hash = db.Column(db.String(70),  default='')
     profile_done = db.Column(db.SmallInteger, default=0)
-
+    date = db.Column(db.Date)
+    # 0-male 1-female
+    sex = db.Column(db.SmallInteger, default=0)
     public_key = db.Column(db.String(32), default='')
 
     info_page = db.relationship('UserPage', backref='user')
@@ -29,27 +31,34 @@ class User(db.Model):
     general_reports = db.relationship('UserReport', backref='user')
     reports = db.relationship('Issue', backref='user')
 
-    def __init__(self, name=None, password=None, email=None, role=None, vk_id=None, google_id=None):
+    def __init__(self, name=None, password=None, email=None,  vk_id=None, google_id=None, date=None):
         self.name = name
+        self.date = date
         if password:
             self.set_password(password)
         if vk_id:
             self.set_token(vk_id, SECRET_KEY)
             self.set_public_key(vk_id, SECRET_KEY)
             self.vk_id = vk_id
+            self.google_id = ''
+            self.email = ''
         if google_id:
             self.set_token(google_id, SECRET_KEY)
             self.set_public_key(google_id, SECRET_KEY)
             self.google_id = google_id
+            self.vk_id = ''
+            self.email = ''
         if email:
             self.set_token(email, SECRET_KEY)
             self.set_public_key(email, SECRET_KEY)
             self.email = email
-        self.role = role
+            self.vk_id = ''
+            self.google_id=''
 
     def set_public_key(self, smth_id, secret):
         t = time.time()
         self.public_key = hashlib.md5(str(smth_id).encode('utf8') + secret.encode('utf8')+str(t).encode('utf8')).hexdigest()
+
 
     def set_password(self, password):
         self.pw_hash = generate_password_hash(password)
@@ -142,7 +151,8 @@ class SubjectStatic(db.Model):
     static_tasks_hardest = db.Column(db.String())
     last_random_task_time = db.Column(db.Integer())
     best_session_list = db.Column(db.Integer())
-
+    last_themes_result = db.Column(db.String())
+    themes_result = db.Column(db.String())
     def __repr__(self):
         return '<SubjectStatic %r>' % self.id
 

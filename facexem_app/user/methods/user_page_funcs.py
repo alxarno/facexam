@@ -133,14 +133,14 @@ def user_get_preference(user):
 
 
 def user_get_last_actions(user):
-    query_task = db.session.query(SessionTasks).order_by(SessionTasks.date.desc()).limit(7).all()
-    some_query = db.session.query(TestSolve).order_by(TestSolve.date.desc()).limit(7).all()
+    query_task = db.session.query(SessionTasks).filter(SessionTasks.user_id == user.id).order_by(SessionTasks.date.desc()).limit(7).all()
+    some_query = db.session.query(TestSolve).filter(TestSolve.user_id == user.id).order_by(TestSolve.date.desc()).limit(7).all()
     all=[]
     for i in query_task:
         all.append({'type': 'few_tasks', "content": i})
     for i in some_query:
         all.append({'type': 'test', "content": i})
-    print(some_query)
+
     for i in range(len(all)):
         for y in range(len(all)):
             if i != y:
@@ -196,8 +196,8 @@ def user_get_global_static(user):
     tasks = 0
     test = 0
     if subjects:
-        tasks += TaskSolve.query.filter_by(solve=1).count()
-        test += TestSolve.query.filter_by(solve=1).count()
+        tasks += TaskSolve.query.filter_by(solve=1, user_id=user.id).count()
+        test += TestSolve.query.filter_by(solve=1, type=1, user_id=user.id).count()
         for i in subjects:
             middle += i.test_points
             tasks += i.solve_delete_tasks

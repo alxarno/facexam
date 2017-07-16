@@ -5,6 +5,7 @@ from ...extensions import db
 import json
 import datetime
 import time
+from ...admin.models import AppStatic
 
 
 def reg_achievements_progress(type, user):
@@ -72,3 +73,35 @@ def add_challenge(now_user, subject):
         return [user_challenge.id, 0, 0]
     else:
         return False
+
+
+def set_performance(type, p_time):
+    statistic = AppStatic.query.first()
+    if type == 'get_test':
+        performance = json.loads(statistic.performance_test)
+    elif type == 'get_task':
+        performance = json.loads(statistic.performance_task)
+    elif type == 'mypage':
+        performance = json.loads(statistic.performance_mypage)
+    elif type == 'subject':
+        performance = json.loads(statistic.performance_subject)
+    else:
+        return False
+    today = datetime.datetime.today()
+    today = datetime.date(today.year, today.month, today.day).strftime("%d.%m.%y")
+    n_time = round(time.time() - p_time, 4)
+    if performance.get(today):
+        performance[today]['time'] += n_time
+        performance[today]['count'] += 1
+    else:
+        performance[today] = {'time': n_time, 'count': 1}
+    if type == 'get_test':
+        statistic.performance_test = json.dumps(performance)
+    elif type == 'get_task':
+        statistic.performance_task = json.dumps(performance)
+    elif type == 'mypage':
+        statistic.performance_mypage = json.dumps(performance)
+    elif type == 'subject':
+        statistic.performance_subject = json.dumps(performance)
+    db.session.commit()
+    return True
