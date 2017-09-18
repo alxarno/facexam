@@ -1,4 +1,4 @@
-# My project's README
+# Welcome to Facexam
 
 
-.idea
+Description is empty, because im very lazy...
